@@ -502,6 +502,38 @@
                 RENDERER.createCherries();
                 // render方法已经在运行，无需重新启动
             });
+
+            // 新增：旋转立方体照片轮播（支持更多图片）
+            var cubePhotos = [
+                './img-one/01.jpg','./img-one/02.jpg','./img-one/03.jpg','./img-one/04.jpg','./img-one/05.jpg','./img-one/06.jpg',
+                './img-one/1.jpg','./img-one/2.jpg','./img-one/3.jpg','./img-one/4.jpg','./img-one/5.jpg','./img-one/6.jpg'
+            ];
+            function applyCubeSet(start) {
+                var n = cubePhotos.length;
+                for (var i = 0; i < 6; i++) {
+                    $('.minbox li').eq(i).css({
+                        'background-image': 'url(' + cubePhotos[(start + i) % n] + ')',
+                        'background-repeat': 'no-repeat',
+                        'background-position': '0 0',
+                        'background-size': 'cover'
+                    });
+                    $('.maxbox li').eq(i).css({
+                        'background-image': 'url(' + cubePhotos[(start + 6 + i) % n] + ')',
+                        'background-repeat': 'no-repeat',
+                        'background-position': '0 0',
+                        'background-size': 'cover'
+                    });
+                }
+            }
+            var startIndex = 0;
+            applyCubeSet(startIndex);
+            // 每8秒切到下一组（按12张为一组推进）
+            var cubeSlideTimer = setInterval(function(){
+                if (!document.hidden) { // 页面不可见时不切换，避免后台消耗
+                    startIndex = (startIndex + 12) % cubePhotos.length;
+                    applyCubeSet(startIndex);
+                }
+            }, 8000);
         });
     </script>
 
