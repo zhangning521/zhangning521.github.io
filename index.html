@@ -596,6 +596,30 @@
 
             // 新增：旋转立方体照片轮播（支持更多图片）
             // 将照片清单和切换间隔放在 cube-photos.json 中，便于日后维护
+            
+            // 图片预加载缓存
+            var imageCache = {};
+            function preloadImage(src) {
+                if (imageCache[src]) return Promise.resolve(imageCache[src]);
+                return new Promise(function(resolve, reject) {
+                    var img = new Image();
+                    img.onload = function() {
+                        imageCache[src] = img;
+                        resolve(img);
+                    };
+                    img.onerror = reject;
+                    img.src = src;
+                });
+            }
+            
+            // 批量预加载图片组
+            function preloadImageSet(imageList) {
+                var promises = imageList.slice(0, 12).map(function(src) { // 预加载前12张，避免内存过载
+                    return preloadImage(src).catch(function() { return null; }); // 忽略加载失败的图片
+                });
+                return Promise.all(promises);
+            }
+            
             function applyCubeSet(start, list) {
                 var n = list.length;
                 // 分离内外侧对应图片：内侧用0开头，外侧用去掉0的版本
@@ -617,24 +641,36 @@
                     });
                 }
                 
+                // 提前预加载即将显示的图片
+                var upcomingImages = [];
                 for (var i = 0; i < 6; i++) {
                     var innerIndex = (start + i) % innerImages.length;
                     var innerImg = innerImages[innerIndex];
                     var outerImg = findPairedImage(innerImg) || innerImg;
-                    
-                    $('.minbox li').eq(i).css({
-                        'background-image': 'url(' + innerImg + ')',
-                        'background-repeat': 'no-repeat',
-                        'background-position': '0 0',
-                        'background-size': 'cover'
-                    });
-                    $('.maxbox li').eq(i).css({
-                        'background-image': 'url(' + outerImg + ')',
-                        'background-repeat': 'no-repeat',
-                        'background-position': '0 0',
-                        'background-size': 'cover'
-                    });
+                    upcomingImages.push(innerImg, outerImg);
                 }
+                
+                // 异步预加载，然后应用样式
+                preloadImageSet(upcomingImages).then(function() {
+                    for (var i = 0; i < 6; i++) {
+                        var innerIndex = (start + i) % innerImages.length;
+                        var innerImg = innerImages[innerIndex];
+                        var outerImg = findPairedImage(innerImg) || innerImg;
+                        
+                        $('.minbox li').eq(i).css({
+                            'background-image': 'url(' + innerImg + ')',
+                            'background-repeat': 'no-repeat',
+                            'background-position': '0 0',
+                            'background-size': 'cover'
+                        });
+                        $('.maxbox li').eq(i).css({
+                            'background-image': 'url(' + outerImg + ')',
+                            'background-repeat': 'no-repeat',
+                            'background-position': '0 0',
+                            'background-size': 'cover'
+                        });
+                    }
+                });
             }
             var cubeSlideTimer;
             function startCubeSlideshow(list, intervalMs) {
@@ -646,11 +682,37 @@
                 });
                 var n = innerImages.length || list.length;
                 var startIndex = 0;
+                // 先预加载第一组
                 applyCubeSet(startIndex, list);
                 var step = n >= 6 ? 6 : 1; // 至少能填满内层
                 cubeSlideTimer = setInterval(function(){
                     if (!document.hidden && n > 0) {
-                        startIndex = (startIndex + step) % n;
+                        var nextIndex = (startIndex + step) % n;
+                        // 预加载下一组
+                        (function(preIndex){
+                            var upcoming = [];
+                            for (var i = 0; i < 6; i++) {
+                                var innerIdx = (preIndex + i) % innerImages.length;
+                                var innerImg = innerImages[innerIdx];
+                                // 与 applyCubeSet 同步的配对逻辑
+                                var outerImages = list.filter(function(path) {
+                                    var filename = path.split('/').pop();
+                                    return filename.match(/^\d+\./) && !filename.match(/^0\d+\./);
+                                });
+                                function findPairedImage(innerPath) {
+                                    var innerFilename = innerPath.split('/').pop();
+                                    var targetFilename = innerFilename.replace(/^0/, '');
+                                    return outerImages.find(function(path) {
+                                        return path.split('/').pop() === targetFilename;
+                                    }) || innerPath;
+                                }
+                                var outerImg = findPairedImage(innerImg);
+                                upcoming.push(innerImg, outerImg);
+                            }
+                            preloadImageSet(upcoming);
+                        })(nextIndex);
+
+                        startIndex = nextIndex;
                         applyCubeSet(startIndex, list);
                     }
                 }, intervalMs);
