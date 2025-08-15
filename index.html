@@ -25,16 +25,90 @@
             margin: 0;
             padding: 0;
             background-color: #000000;
+            position: relative;
+            overflow: hidden;
         }
-
+        .box {
+            left: 0;
+            top: 0;
+        }
+        @media (max-width: 768px) {
+            #jsi-cherry-container.container { overflow: hidden; }
+        }
         /* 移动端适配 */
         @media (max-width: 768px) {
             .box {
-                margin-top: 65% !important;
+                width: 80vw !important;
+                height: 80vw !important;
+                margin-left: 10vw !important;
+                margin-top: 30vh !important;
+                max-width: 250px !important;
+                max-height: 250px !important;
             }
+            
+            .minbox {
+                width: 40vw !important;
+                height: 40vw !important;
+                left: 20vw !important;
+                top: 15vw !important;
+                max-width: 125px !important;
+                max-height: 125px !important;
+            }
+            
+            .minbox li {
+                width: 40vw !important;
+                height: 40vw !important;
+                max-width: 125px !important;
+                max-height: 125px !important;
+            }
+            
+            .maxbox {
+                width: 80vw !important;
+                height: 40vw !important;
+                max-width: 250px !important;
+                max-height: 125px !important;
+            }
+            
+            .maxbox li {
+                width: 40vw !important;
+                height: 40vw !important;
+                max-width: 125px !important;
+                max-height: 125px !important;
+            }
+            
+            .box:hover ol li:nth-child(1), 
+            .box:hover ol li:nth-child(2), 
+            .box:hover ol li:nth-child(3), 
+            .box:hover ol li:nth-child(4), 
+            .box:hover ol li:nth-child(5), 
+            .box:hover ol li:nth-child(6) {
+                width: 60vw !important;
+                height: 60vw !important;
+                max-width: 200px !important;
+                max-height: 200px !important;
+                left: -10vw !important;
+                top: -10vw !important;
+            }
+            
             .m-main {
                 width: 280px;
                 right: 10px;
+            }
+            
+            /* 移动端音频播放提示 */
+            .mobile-audio-tip {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                text-align: center;
+                font-size: 14px;
+                z-index: 1000;
+                display: none;
             }
         }
     </style>
@@ -103,6 +177,15 @@
                 var shuffleIndex = 0;
                 var autoplayEnabled = true;
                 var shuffleEnabled = true;
+                
+                // 基础诊断：监听错误与中断
+                audio.addEventListener('error', function(){
+                    var err = audio.error;
+                    console.log('[AudioError]', err && err.code, err, 'src=', audio.currentSrc || audio.src);
+                });
+                audio.addEventListener('abort', function(){
+                    console.log('[AudioAbort] src=', audio.currentSrc || audio.src);
+                });
 
                 // 从配置文件加载播放列表
                 function loadPlaylist() {
@@ -112,18 +195,16 @@
                             playlist = Array.isArray(data.playlist) ? data.playlist.filter(Boolean) : [];
                             autoplayEnabled = data.autoplay !== false;
                             shuffleEnabled = data.shuffle !== false;
+                            // 暴露给全局，便于移动端自动播放解锁逻辑判断
+                            window.autoplayEnabled = autoplayEnabled;
                             
                             if (playlist.length > 0) {
                                 shuffledPlaylist = shuffleEnabled ? shuffleArray([...playlist]) : [...playlist];
                                 loadCurrentSong();
-                                if (autoplayEnabled) {
-                                    // 延迟一下自动播放，确保页面完全加载
-                                    setTimeout(function() {
-                                        audio.play().catch(function(e) {
-                                            console.log('自动播放被浏览器阻止，需用户手动点击播放');
-                                        });
-                                    }, 1000);
-                                }
+                                
+                                // 派发事件
+                                var event = new CustomEvent('cube:playlist-ready');
+                                document.dispatchEvent(event);
                             }
                         })
                         .catch(function() {
@@ -142,17 +223,30 @@
                     return arr;
                 }
 
-                // 加载当前歌曲
+                // 规范化音频URL，将扩展名统一为小写.mp3，避免服务端按扩展名解析MIME时出错
+                function normalizeAudioUrl(p) {
+                    if (typeof p !== 'string') return p;
+                    return p.replace(/\.mp3$/i, '.mp3');
+                }
+
+                // 加载当前歌曲（避免重复设置导致的中断）
                 function loadCurrentSong() {
                     if (shuffledPlaylist.length === 0) return;
                     var songPath = shuffledPlaylist[shuffleIndex % shuffledPlaylist.length];
-                    audio.src = songPath;
-                    audio.load();
+                    songPath = normalizeAudioUrl(songPath);
+                    var current = audio.currentSrc || audio.src || '';
+                    // 仅当路径变化时才重新加载
+                    if (!current.endsWith(songPath)) {
+                        try { audio.pause(); } catch(e) {}
+                        audio.src = songPath;
+                        audio.load();
+                    }
                 }
 
                 // 播放下一首
                 function playNext() {
                     if (shuffledPlaylist.length === 0) return;
+                    try { audio.pause(); } catch(e) {}
                     shuffleIndex = (shuffleIndex + 1) % shuffledPlaylist.length;
                     
                     // 如果循环完一轮且启用随机，重新洗牌
@@ -276,6 +370,51 @@
                         e.preventDefault();
                         audio.currentTime = Math.min(d, audio.currentTime + 5);
                     }
+                });
+                
+                // 创建移动端提示元素
+                var mobileTip = document.createElement('div');
+                mobileTip.className = 'mobile-audio-tip';
+                mobileTip.textContent = '点击屏幕开始播放音乐';
+                document.body.appendChild(mobileTip);
+
+                // 增强移动端自动播放解锁
+                function tryPlayWithMobileUnlock() {
+                    audio.play().then(function(){
+                        mobileTip.style.display = 'none';
+                    }).catch(function(){
+                        mobileTip.style.display = 'block';
+                        
+                        var unlock = function(){
+                            audio.play().then(function(){
+                                mobileTip.style.display = 'none';
+                            }).catch(function(){
+                                mobileTip.textContent = '请点击播放按钮开始音乐';
+                                setTimeout(function(){
+                                    mobileTip.style.display = 'none';
+                                }, 3000);
+                            }).finally(function(){
+                                window.removeEventListener('touchstart', unlock, true);
+                                window.removeEventListener('click', unlock, true);
+                            });
+                        };
+                        
+                        window.addEventListener('touchstart', unlock, true);
+                        window.addEventListener('click', unlock, true);
+                    });
+                }
+
+                // 在播放列表加载完成后尝试自动播放
+                document.addEventListener('cube:playlist-ready', function(){
+                    if (window.autoplayEnabled) {
+                        setTimeout(tryPlayWithMobileUnlock, 500);
+                    }
+                });
+                
+                // 为移动端播放控制增强触摸事件
+                $('#js-play, #js-pause').on('touchend', function(e) {
+                    e.preventDefault();
+                    $(this).trigger('click');
                 });
             }
         })
@@ -740,6 +879,8 @@
         });
     </script>
 
- </body>
+    </script>
+
+</body>
  
- </html>
+</html>
