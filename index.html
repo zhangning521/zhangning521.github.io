@@ -62,7 +62,6 @@
 		</div>
 		<div class="video">
 			<audio preload="metadata" name="media" id="js-video">
-                <source src="./mp3/白月光与朱砂痣.mp3" type="audio/mpeg">
                 您的浏览器不支持音频播放。
             </audio>
 		</div>
@@ -96,6 +95,84 @@
                 var $timeline = $('.timeline');
                 var $timeshow = $('.timeshow');
                 var $size = $('.size');
+                
+                // 随机音乐播放列表
+                var playlist = [];
+                var currentIndex = 0;
+                var shuffledPlaylist = [];
+                var shuffleIndex = 0;
+                var autoplayEnabled = true;
+                var shuffleEnabled = true;
+
+                // 从配置文件加载播放列表
+                function loadPlaylist() {
+                    return fetch('./playlist.json', { cache: 'no-cache' })
+                        .then(function(res) { return res.ok ? res.json() : Promise.reject(res.status); })
+                        .then(function(data) {
+                            playlist = Array.isArray(data.playlist) ? data.playlist.filter(Boolean) : [];
+                            autoplayEnabled = data.autoplay !== false;
+                            shuffleEnabled = data.shuffle !== false;
+                            
+                            if (playlist.length > 0) {
+                                shuffledPlaylist = shuffleEnabled ? shuffleArray([...playlist]) : [...playlist];
+                                loadCurrentSong();
+                                if (autoplayEnabled) {
+                                    // 延迟一下自动播放，确保页面完全加载
+                                    setTimeout(function() {
+                                        audio.play().catch(function(e) {
+                                            console.log('自动播放被浏览器阻止，需用户手动点击播放');
+                                        });
+                                    }, 1000);
+                                }
+                            }
+                        })
+                        .catch(function() {
+                            console.log('播放列表加载失败，使用默认音乐');
+                        });
+                }
+
+                // 洗牌算法
+                function shuffleArray(arr) {
+                    for (var i = arr.length - 1; i > 0; i--) {
+                        var j = Math.floor(Math.random() * (i + 1));
+                        var temp = arr[i];
+                        arr[i] = arr[j];
+                        arr[j] = temp;
+                    }
+                    return arr;
+                }
+
+                // 加载当前歌曲
+                function loadCurrentSong() {
+                    if (shuffledPlaylist.length === 0) return;
+                    var songPath = shuffledPlaylist[shuffleIndex % shuffledPlaylist.length];
+                    audio.src = songPath;
+                    audio.load();
+                }
+
+                // 播放下一首
+                function playNext() {
+                    if (shuffledPlaylist.length === 0) return;
+                    shuffleIndex = (shuffleIndex + 1) % shuffledPlaylist.length;
+                    
+                    // 如果循环完一轮且启用随机，重新洗牌
+                    if (shuffleIndex === 0 && shuffleEnabled) {
+                        shuffledPlaylist = shuffleArray([...playlist]);
+                    }
+                    
+                    loadCurrentSong();
+                    audio.play().catch(function(e) {
+                        console.log('播放下一首失败:', e);
+                    });
+                }
+
+                // 歌曲结束事件
+                $(audio).on('ended', function() {
+                    playNext();
+                });
+
+                // 初始化播放列表
+                loadPlaylist();
 
                 function format(s) {
                     if (!isFinite(s) || s < 0) return '--:--';
@@ -127,12 +204,26 @@
 
                 // 播放/暂停
                 $(document).on('click', '#js-play', function () {
+                    if (audio.src === '' || audio.src === window.location.href) {
+                        // 如果还未加载任何歌曲，加载并播放
+                        // 调用 loadPlaylist 已在初始化执行，确保有歌可播
+                    }
                     audio.play();
                     $('#img1').css('display', 'none');
                     $('#img2').css('display', 'block');
                 });
                 $(document).on('click', '#js-pause', function () {
                     audio.pause();
+                    $('#img1').css('display', 'block');
+                    $('#img2').css('display', 'none');
+                });
+
+                // 当可以播放时，更新UI状态
+                $(audio).on('play', function(){
+                    $('#img1').css('display', 'none');
+                    $('#img2').css('display', 'block');
+                });
+                $(audio).on('pause', function(){
                     $('#img1').css('display', 'block');
                     $('#img2').css('display', 'none');
                 });
@@ -504,36 +595,86 @@
             });
 
             // 新增：旋转立方体照片轮播（支持更多图片）
-            var cubePhotos = [
-                './img-one/01.jpg','./img-one/02.jpg','./img-one/03.jpg','./img-one/04.jpg','./img-one/05.jpg','./img-one/06.jpg',
-                './img-one/1.jpg','./img-one/2.jpg','./img-one/3.jpg','./img-one/4.jpg','./img-one/5.jpg','./img-one/6.jpg'
-            ];
-            function applyCubeSet(start) {
-                var n = cubePhotos.length;
+            // 将照片清单和切换间隔放在 cube-photos.json 中，便于日后维护
+            function applyCubeSet(start, list) {
+                var n = list.length;
+                // 分离内外侧对应图片：内侧用0开头，外侧用去掉0的版本
+                var innerImages = list.filter(function(path) {
+                    var filename = path.split('/').pop();
+                    return filename.match(/^0\d+\./);
+                });
+                var outerImages = list.filter(function(path) {
+                    var filename = path.split('/').pop();
+                    return filename.match(/^\d+\./) && !filename.match(/^0\d+\./);
+                });
+                
+                // 建立配对关系：内侧01.jpg对应外侧1.jpg
+                function findPairedImage(innerPath) {
+                    var innerFilename = innerPath.split('/').pop();
+                    var targetFilename = innerFilename.replace(/^0/, ''); // 去掉开头的0
+                    return outerImages.find(function(path) {
+                        return path.split('/').pop() === targetFilename;
+                    });
+                }
+                
                 for (var i = 0; i < 6; i++) {
+                    var innerIndex = (start + i) % innerImages.length;
+                    var innerImg = innerImages[innerIndex];
+                    var outerImg = findPairedImage(innerImg) || innerImg;
+                    
                     $('.minbox li').eq(i).css({
-                        'background-image': 'url(' + cubePhotos[(start + i) % n] + ')',
+                        'background-image': 'url(' + innerImg + ')',
                         'background-repeat': 'no-repeat',
                         'background-position': '0 0',
                         'background-size': 'cover'
                     });
                     $('.maxbox li').eq(i).css({
-                        'background-image': 'url(' + cubePhotos[(start + 6 + i) % n] + ')',
+                        'background-image': 'url(' + outerImg + ')',
                         'background-repeat': 'no-repeat',
                         'background-position': '0 0',
                         'background-size': 'cover'
                     });
                 }
             }
-            var startIndex = 0;
-            applyCubeSet(startIndex);
-            // 每8秒切到下一组（按12张为一组推进）
-            var cubeSlideTimer = setInterval(function(){
-                if (!document.hidden) { // 页面不可见时不切换，避免后台消耗
-                    startIndex = (startIndex + 12) % cubePhotos.length;
-                    applyCubeSet(startIndex);
-                }
-            }, 8000);
+            var cubeSlideTimer;
+            function startCubeSlideshow(list, intervalMs) {
+                if (cubeSlideTimer) clearInterval(cubeSlideTimer);
+                // 基于配对后的内侧图片数量推进
+                var innerImages = list.filter(function(path){
+                    var filename = path.split('/').pop();
+                    return filename.match(/^0\d+\./);
+                });
+                var n = innerImages.length || list.length;
+                var startIndex = 0;
+                applyCubeSet(startIndex, list);
+                var step = n >= 6 ? 6 : 1; // 至少能填满内层
+                cubeSlideTimer = setInterval(function(){
+                    if (!document.hidden && n > 0) {
+                        startIndex = (startIndex + step) % n;
+                        applyCubeSet(startIndex, list);
+                    }
+                }, intervalMs);
+            }
+
+            function initCubePhotosFromConfig() {
+                var defaultPhotos = [
+                    './img-one/01.jpg','./img-one/02.jpg','./img-one/03.jpg','./img-one/04.jpg','./img-one/05.jpg','./img-one/06.jpg',
+                    './img-one/1.jpg','./img-one/2.jpg','./img-one/3.jpg','./img-one/4.jpg','./img-one/5.jpg','./img-one/6.jpg'
+                ];
+                return fetch('./cube-photos.json', { cache: 'no-cache' })
+                    .then(function(res){ return res.ok ? res.json() : Promise.reject(res.status); })
+                    .then(function(data){
+                        var list = Array.isArray(data.photos) ? data.photos.filter(Boolean) : [];
+                        var interval = Number(data.slideInterval) || 4000;
+                        if (!list.length) list = defaultPhotos;
+                        startCubeSlideshow(list, interval);
+                    })
+                    .catch(function(){
+                        startCubeSlideshow(defaultPhotos, 4000);
+                    });
+            }
+
+            initCubePhotosFromConfig();
         });
     </script>
 

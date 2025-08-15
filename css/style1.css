@@ -186,7 +186,7 @@ li {
 
 .minbox li:nth-child(2) {
     background: url(../img-one/02.jpg) no-repeat 0 0;
-    -webkit-transform: rotateX(180deg) translateZ(50px);
+    -webkit-transform: rotateY(180deg) translateZ(50px);
 }
 
 .minbox li:nth-child(3) {
@@ -265,7 +265,7 @@ li {
 }
 
 .maxbox li:nth-child(2) {
-    -webkit-transform: rotateX(180deg) translateZ(100px);
+    -webkit-transform: rotateY(180deg) translateZ(100px);
 }
 
 .maxbox li:nth-child(3) {
@@ -294,7 +294,7 @@ li {
 }
 
 .box:hover ol li:nth-child(2) {
-    -webkit-transform: rotateX(180deg) translateZ(300px);
+    -webkit-transform: rotateY(180deg) translateZ(300px);
     width: 400px;
     height: 400px;
     opacity: 0.8;
