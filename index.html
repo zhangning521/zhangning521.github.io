@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
     <meta charset="utf-8" />
-    <title></title>
-    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>樱花飘落音乐相册</title>
+    <meta name="description" content="唯美的樱花飘落动画配合3D旋转相册和背景音乐播放器" />
+    <meta name="keywords" content="樱花,音乐播放器,3D相册,动画效果" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link type="text/css" href="./css/style1.css" rel="stylesheet" />
     <style>
         html,
@@ -23,6 +26,17 @@
             padding: 0;
             background-color: #000000;
         }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .box {
+                margin-top: 65% !important;
+            }
+            .m-main {
+                width: 280px;
+                right: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -30,27 +44,29 @@
     
     <div class="m-main">
 		<div class="player">
-			<a href="javascript:void(0)" rel="external nofollow" rel="external nofollow" id="js-play">
-				<img src="./img-one/开始.png" alt="" id="img1"/>
-            </a>
-			<a href="javascript:void(0)" rel="external nofollow" rel="external nofollow" id="js-pause">
-				<img src="./img-one/暂停.png" alt="" id="img2"/>
-			</a>
+			<button type="button" id="js-play" aria-label="播放音乐" title="播放">
+				<img src="./img-one/开始.png" alt="播放" id="img1"/>
+            </button>
+			<button type="button" id="js-pause" aria-label="暂停音乐" title="暂停">
+				<img src="./img-one/暂停.png" alt="暂停" id="img2"/>
+			</button>
 			<div class="play-box">
 				<div class="left">
-					<p class="timeline"><span style=""></span></p>
+					<p class="timeline" role="progressbar" aria-label="音乐播放进度" tabindex="0"><span style=""></span></p>
 					<div class="info">
 						<span class="size">00:00</span>
-						<span class="timeshow">00:00</span>
+						<span class="timeshow">--:--</span>
 					</div>
 				</div>
 			</div>
 		</div>
 		<div class="video">
-			<video controls autoplay name="media" id="js-video"><source src="./mp3/白月光与朱砂痣.mp3" type="video/mp4"></video>
+			<audio preload="metadata" name="media" id="js-video">
+                <source src="./mp3/白月光与朱砂痣.mp3" type="audio/mpeg">
+                您的浏览器不支持音频播放。
+            </audio>
 		</div>
 	</div>
-</div>
     <div id="jsi-cherry-container" class="container">
         <div class="box">
             <ul class="minbox">
@@ -76,60 +92,100 @@
             AudioControl('js-video');
 
             function AudioControl(id) {
-                // 音频控制进度条
-                console.log(777);
                 var audio = document.getElementById(id);
-                $(audio).on('loadedmetadata', function () {
-                    audio.pause();
-                    // 进度条控制
-                    $(document).on('touchend', '.timeline', function (e) {
-                        var x = e.originalEvent.changedTouches[0].clientX - this.offsetLeft;
-                        var X = x < 0 ? 0 : x;
-                        var W = $(this).width();
-                        var place = X > W ? W : X;
-                        audio.currentTime = (place / W).toFixed(2) * audio.duration;
-                        $(this).children().css({
-                            width: (place / W).toFixed(2) * 100 + "%"
-                        })
-                    });
-                    // 播放
-                    $(document).on('click', '#js-play', function () {
-                        audio.play()
-                        $('#img1').css("display","none");
-                        $('#img2').css("display","block");
-                    });
-                    // 暂停
-                    $(document).on('click', '#js-pause', function () {
-                        audio.pause()
-                        $('#img1').css("display","block");
-                        $('#img2').css("display","none");
-                    });
-                });
-                setInterval(function () {
-                    var currentTime = audio.currentTime;
-                    setTimeShow(currentTime);
-                }, 1000);
-                // 设置播放时间
-                function setTimeShow(t) {
-                    t = Math.floor(t);
-                    var playTime = secondToMin(audio.currentTime);
-                    $(".size").html(playTime);
-                    $('.timeshow').text(secondToMin(audio.duration));
-                    $('.timeline').children().css({
-                        width: (t / audio.duration).toFixed(4) * 100 + "%"
-                    })
-                }
-                // 计算时间
-                function secondToMin(s) {
+                var $timeline = $('.timeline');
+                var $timeshow = $('.timeshow');
+                var $size = $('.size');
+
+                function format(s) {
+                    if (!isFinite(s) || s < 0) return '--:--';
+                    s = Math.floor(s);
                     var MM = Math.floor(s / 60);
                     var SS = s % 60;
-                    if (MM < 10)
-                        MM = "0" + MM;
-                    if (SS < 10)
-                        SS = "0" + SS;
-                    var min = MM + ":" + SS;
-                    return min.split('.')[0];
+                    if (MM < 10) MM = '0' + MM;
+                    if (SS < 10) SS = '0' + SS;
+                    return (MM + ':' + SS);
                 }
+
+                function updateProgressUI() {
+                    var d = audio.duration;
+                    var t = audio.currentTime;
+                    $size.text(format(t));
+                    $timeshow.text(format(d));
+                    var percent = d > 0 ? Math.max(0, Math.min(1, t / d)) : 0;
+                    $timeline.children().css({ width: (percent * 100).toFixed(2) + '%' });
+                }
+
+                // 元数据加载完成
+                $(audio).on('loadedmetadata', function () {
+                    updateProgressUI();
+                });
+                // 进度更新
+                $(audio).on('timeupdate', function () {
+                    updateProgressUI();
+                });
+
+                // 播放/暂停
+                $(document).on('click', '#js-play', function () {
+                    audio.play();
+                    $('#img1').css('display', 'none');
+                    $('#img2').css('display', 'block');
+                });
+                $(document).on('click', '#js-pause', function () {
+                    audio.pause();
+                    $('#img1').css('display', 'block');
+                    $('#img2').css('display', 'none');
+                });
+
+                // 键盘可访问性：空格/回车触发播放/暂停
+                $(document).on('keydown', '#js-play, #js-pause', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (audio.paused) {
+                            $('#js-play').trigger('click');
+                        } else {
+                            $('#js-pause').trigger('click');
+                        }
+                    }
+                });
+
+                // 进度条交互（Pointer事件）
+                function seekByClientX(clientX, el) {
+                    var rect = el.getBoundingClientRect();
+                    var x = clientX - rect.left;
+                    var W = rect.width;
+                    var clamped = Math.max(0, Math.min(W, x));
+                    var d = audio.duration;
+                    if (isFinite(d) && d > 0) {
+                        var place = clamped / W;
+                        audio.currentTime = place * d;
+                    }
+                }
+                $timeline.on('pointerdown', function (e) {
+                    this.setPointerCapture && this.setPointerCapture(e.pointerId);
+                    seekByClientX(e.clientX, this);
+                });
+                $timeline.on('pointermove', function (e) {
+                    if (e.buttons & 1) {
+                        seekByClientX(e.clientX, this);
+                    }
+                });
+                $timeline.on('pointerup pointercancel', function (e) {
+                    // no-op, UI由timeupdate驱动
+                });
+
+                // 键盘左右键快退快进5秒
+                $timeline.on('keydown', function (e) {
+                    var d = audio.duration;
+                    if (!isFinite(d) || d <= 0) return;
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        audio.currentTime = Math.max(0, audio.currentTime - 5);
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        audio.currentTime = Math.min(d, audio.currentTime + 5);
+                    }
+                });
             }
         })
         var RENDERER = {
@@ -141,15 +197,7 @@
                 this.reconstructMethods();
                 this.createCherries();
                 this.render();
-                if (
-                    navigator.userAgent.match(
-                        /(phone|pod|iPhone|iPod|ios|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
-                    )
-                ) {
-                    var box = document.querySelectorAll('.box')[0];
-                    console.log(box, '移动端');
-                    box.style.marginTop = '65%';
-                }
+
             },
             setParameters: function () {
                 this.$container = $('#jsi-cherry-container');
@@ -445,26 +493,18 @@
         $(function () {
             console.log(6666);
             RENDERER.init();
+            
+            // 窗口resize优化：重设canvas尺寸和樱花动画
+            $(window).on('resize', function() {
+                // 清空现有canvas并重新初始化
+                RENDERER.$container.empty();
+                RENDERER.setParameters();
+                RENDERER.createCherries();
+                // render方法已经在运行，无需重新启动
+            });
         });
     </script>
-    <style>
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
 
-        .container {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #000000;
-        }
-    </style>
-</body>
-
-</html>
+ </body>
+ 
+ </html>
