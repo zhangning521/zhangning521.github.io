@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
     <meta charset="utf-8" />
-    <title></title>
-    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>樱花飘落音乐相册</title>
+    <meta name="description" content="唯美的樱花飘落动画配合3D旋转相册和背景音乐播放器" />
+    <meta name="keywords" content="樱花,音乐播放器,3D相册,动画效果" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link type="text/css" href="./css/style1.css" rel="stylesheet" />
     <style>
         html,
@@ -23,6 +26,17 @@
             padding: 0;
             background-color: #000000;
         }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .box {
+                margin-top: 65% !important;
+            }
+            .m-main {
+                width: 280px;
+                right: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -30,27 +44,28 @@
     
     <div class="m-main">
 		<div class="player">
-			<a href="javascript:void(0)" rel="external nofollow" rel="external nofollow" id="js-play">
-				<img src="./img-one/开始.png" alt="" id="img1"/>
-            </a>
-			<a href="javascript:void(0)" rel="external nofollow" rel="external nofollow" id="js-pause">
-				<img src="./img-one/暂停.png" alt="" id="img2"/>
-			</a>
+			<button type="button" id="js-play" aria-label="播放音乐" title="播放">
+				<img src="./img-one/开始.png" alt="播放" id="img1"/>
+            </button>
+			<button type="button" id="js-pause" aria-label="暂停音乐" title="暂停">
+				<img src="./img-one/暂停.png" alt="暂停" id="img2"/>
+			</button>
 			<div class="play-box">
 				<div class="left">
-					<p class="timeline"><span style=""></span></p>
+					<p class="timeline" role="progressbar" aria-label="音乐播放进度" tabindex="0"><span style=""></span></p>
 					<div class="info">
 						<span class="size">00:00</span>
-						<span class="timeshow">00:00</span>
+						<span class="timeshow">--:--</span>
 					</div>
 				</div>
 			</div>
 		</div>
 		<div class="video">
-			<video controls autoplay name="media" id="js-video"><source src="./mp3/白月光与朱砂痣.mp3" type="video/mp4"></video>
+			<audio preload="metadata" name="media" id="js-video">
+                您的浏览器不支持音频播放。
+            </audio>
 		</div>
 	</div>
-</div>
     <div id="jsi-cherry-container" class="container">
         <div class="box">
             <ul class="minbox">
@@ -76,60 +91,192 @@
             AudioControl('js-video');
 
             function AudioControl(id) {
-                // 音频控制进度条
-                console.log(777);
                 var audio = document.getElementById(id);
-                $(audio).on('loadedmetadata', function () {
-                    audio.pause();
-                    // 进度条控制
-                    $(document).on('touchend', '.timeline', function (e) {
-                        var x = e.originalEvent.changedTouches[0].clientX - this.offsetLeft;
-                        var X = x < 0 ? 0 : x;
-                        var W = $(this).width();
-                        var place = X > W ? W : X;
-                        audio.currentTime = (place / W).toFixed(2) * audio.duration;
-                        $(this).children().css({
-                            width: (place / W).toFixed(2) * 100 + "%"
+                var $timeline = $('.timeline');
+                var $timeshow = $('.timeshow');
+                var $size = $('.size');
+                
+                // 随机音乐播放列表
+                var playlist = [];
+                var currentIndex = 0;
+                var shuffledPlaylist = [];
+                var shuffleIndex = 0;
+                var autoplayEnabled = true;
+                var shuffleEnabled = true;
+
+                // 从配置文件加载播放列表
+                function loadPlaylist() {
+                    return fetch('./playlist.json', { cache: 'no-cache' })
+                        .then(function(res) { return res.ok ? res.json() : Promise.reject(res.status); })
+                        .then(function(data) {
+                            playlist = Array.isArray(data.playlist) ? data.playlist.filter(Boolean) : [];
+                            autoplayEnabled = data.autoplay !== false;
+                            shuffleEnabled = data.shuffle !== false;
+                            
+                            if (playlist.length > 0) {
+                                shuffledPlaylist = shuffleEnabled ? shuffleArray([...playlist]) : [...playlist];
+                                loadCurrentSong();
+                                if (autoplayEnabled) {
+                                    // 延迟一下自动播放，确保页面完全加载
+                                    setTimeout(function() {
+                                        audio.play().catch(function(e) {
+                                            console.log('自动播放被浏览器阻止，需用户手动点击播放');
+                                        });
+                                    }, 1000);
+                                }
+                            }
                         })
-                    });
-                    // 播放
-                    $(document).on('click', '#js-play', function () {
-                        audio.play()
-                        $('#img1').css("display","none");
-                        $('#img2').css("display","block");
-                    });
-                    // 暂停
-                    $(document).on('click', '#js-pause', function () {
-                        audio.pause()
-                        $('#img1').css("display","block");
-                        $('#img2').css("display","none");
-                    });
-                });
-                setInterval(function () {
-                    var currentTime = audio.currentTime;
-                    setTimeShow(currentTime);
-                }, 1000);
-                // 设置播放时间
-                function setTimeShow(t) {
-                    t = Math.floor(t);
-                    var playTime = secondToMin(audio.currentTime);
-                    $(".size").html(playTime);
-                    $('.timeshow').text(secondToMin(audio.duration));
-                    $('.timeline').children().css({
-                        width: (t / audio.duration).toFixed(4) * 100 + "%"
-                    })
+                        .catch(function() {
+                            console.log('播放列表加载失败，使用默认音乐');
+                        });
                 }
-                // 计算时间
-                function secondToMin(s) {
+
+                // 洗牌算法
+                function shuffleArray(arr) {
+                    for (var i = arr.length - 1; i > 0; i--) {
+                        var j = Math.floor(Math.random() * (i + 1));
+                        var temp = arr[i];
+                        arr[i] = arr[j];
+                        arr[j] = temp;
+                    }
+                    return arr;
+                }
+
+                // 加载当前歌曲
+                function loadCurrentSong() {
+                    if (shuffledPlaylist.length === 0) return;
+                    var songPath = shuffledPlaylist[shuffleIndex % shuffledPlaylist.length];
+                    audio.src = songPath;
+                    audio.load();
+                }
+
+                // 播放下一首
+                function playNext() {
+                    if (shuffledPlaylist.length === 0) return;
+                    shuffleIndex = (shuffleIndex + 1) % shuffledPlaylist.length;
+                    
+                    // 如果循环完一轮且启用随机，重新洗牌
+                    if (shuffleIndex === 0 && shuffleEnabled) {
+                        shuffledPlaylist = shuffleArray([...playlist]);
+                    }
+                    
+                    loadCurrentSong();
+                    audio.play().catch(function(e) {
+                        console.log('播放下一首失败:', e);
+                    });
+                }
+
+                // 歌曲结束事件
+                $(audio).on('ended', function() {
+                    playNext();
+                });
+
+                // 初始化播放列表
+                loadPlaylist();
+
+                function format(s) {
+                    if (!isFinite(s) || s < 0) return '--:--';
+                    s = Math.floor(s);
                     var MM = Math.floor(s / 60);
                     var SS = s % 60;
-                    if (MM < 10)
-                        MM = "0" + MM;
-                    if (SS < 10)
-                        SS = "0" + SS;
-                    var min = MM + ":" + SS;
-                    return min.split('.')[0];
+                    if (MM < 10) MM = '0' + MM;
+                    if (SS < 10) SS = '0' + SS;
+                    return (MM + ':' + SS);
                 }
+
+                function updateProgressUI() {
+                    var d = audio.duration;
+                    var t = audio.currentTime;
+                    $size.text(format(t));
+                    $timeshow.text(format(d));
+                    var percent = d > 0 ? Math.max(0, Math.min(1, t / d)) : 0;
+                    $timeline.children().css({ width: (percent * 100).toFixed(2) + '%' });
+                }
+
+                // 元数据加载完成
+                $(audio).on('loadedmetadata', function () {
+                    updateProgressUI();
+                });
+                // 进度更新
+                $(audio).on('timeupdate', function () {
+                    updateProgressUI();
+                });
+
+                // 播放/暂停
+                $(document).on('click', '#js-play', function () {
+                    if (audio.src === '' || audio.src === window.location.href) {
+                        // 如果还未加载任何歌曲，加载并播放
+                        // 调用 loadPlaylist 已在初始化执行，确保有歌可播
+                    }
+                    audio.play();
+                    $('#img1').css('display', 'none');
+                    $('#img2').css('display', 'block');
+                });
+                $(document).on('click', '#js-pause', function () {
+                    audio.pause();
+                    $('#img1').css('display', 'block');
+                    $('#img2').css('display', 'none');
+                });
+
+                // 当可以播放时，更新UI状态
+                $(audio).on('play', function(){
+                    $('#img1').css('display', 'none');
+                    $('#img2').css('display', 'block');
+                });
+                $(audio).on('pause', function(){
+                    $('#img1').css('display', 'block');
+                    $('#img2').css('display', 'none');
+                });
+
+                // 键盘可访问性：空格/回车触发播放/暂停
+                $(document).on('keydown', '#js-play, #js-pause', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (audio.paused) {
+                            $('#js-play').trigger('click');
+                        } else {
+                            $('#js-pause').trigger('click');
+                        }
+                    }
+                });
+
+                // 进度条交互（Pointer事件）
+                function seekByClientX(clientX, el) {
+                    var rect = el.getBoundingClientRect();
+                    var x = clientX - rect.left;
+                    var W = rect.width;
+                    var clamped = Math.max(0, Math.min(W, x));
+                    var d = audio.duration;
+                    if (isFinite(d) && d > 0) {
+                        var place = clamped / W;
+                        audio.currentTime = place * d;
+                    }
+                }
+                $timeline.on('pointerdown', function (e) {
+                    this.setPointerCapture && this.setPointerCapture(e.pointerId);
+                    seekByClientX(e.clientX, this);
+                });
+                $timeline.on('pointermove', function (e) {
+                    if (e.buttons & 1) {
+                        seekByClientX(e.clientX, this);
+                    }
+                });
+                $timeline.on('pointerup pointercancel', function (e) {
+                    // no-op, UI由timeupdate驱动
+                });
+
+                // 键盘左右键快退快进5秒
+                $timeline.on('keydown', function (e) {
+                    var d = audio.duration;
+                    if (!isFinite(d) || d <= 0) return;
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        audio.currentTime = Math.max(0, audio.currentTime - 5);
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        audio.currentTime = Math.min(d, audio.currentTime + 5);
+                    }
+                });
             }
         })
         var RENDERER = {
@@ -141,15 +288,7 @@
                 this.reconstructMethods();
                 this.createCherries();
                 this.render();
-                if (
-                    navigator.userAgent.match(
-                        /(phone|pod|iPhone|iPod|ios|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
-                    )
-                ) {
-                    var box = document.querySelectorAll('.box')[0];
-                    console.log(box, '移动端');
-                    box.style.marginTop = '65%';
-                }
+
             },
             setParameters: function () {
                 this.$container = $('#jsi-cherry-container');
@@ -445,26 +584,100 @@
         $(function () {
             console.log(6666);
             RENDERER.init();
+            
+            // 窗口resize优化：重设canvas尺寸和樱花动画
+            $(window).on('resize', function() {
+                // 清空现有canvas并重新初始化
+                RENDERER.$container.empty();
+                RENDERER.setParameters();
+                RENDERER.createCherries();
+                // render方法已经在运行，无需重新启动
+            });
+
+            // 新增：旋转立方体照片轮播（支持更多图片）
+            // 将照片清单和切换间隔放在 cube-photos.json 中，便于日后维护
+            function applyCubeSet(start, list) {
+                var n = list.length;
+                // 分离内外侧对应图片：内侧用0开头，外侧用去掉0的版本
+                var innerImages = list.filter(function(path) {
+                    var filename = path.split('/').pop();
+                    return filename.match(/^0\d+\./);
+                });
+                var outerImages = list.filter(function(path) {
+                    var filename = path.split('/').pop();
+                    return filename.match(/^\d+\./) && !filename.match(/^0\d+\./);
+                });
+                
+                // 建立配对关系：内侧01.jpg对应外侧1.jpg
+                function findPairedImage(innerPath) {
+                    var innerFilename = innerPath.split('/').pop();
+                    var targetFilename = innerFilename.replace(/^0/, ''); // 去掉开头的0
+                    return outerImages.find(function(path) {
+                        return path.split('/').pop() === targetFilename;
+                    });
+                }
+                
+                for (var i = 0; i < 6; i++) {
+                    var innerIndex = (start + i) % innerImages.length;
+                    var innerImg = innerImages[innerIndex];
+                    var outerImg = findPairedImage(innerImg) || innerImg;
+                    
+                    $('.minbox li').eq(i).css({
+                        'background-image': 'url(' + innerImg + ')',
+                        'background-repeat': 'no-repeat',
+                        'background-position': '0 0',
+                        'background-size': 'cover'
+                    });
+                    $('.maxbox li').eq(i).css({
+                        'background-image': 'url(' + outerImg + ')',
+                        'background-repeat': 'no-repeat',
+                        'background-position': '0 0',
+                        'background-size': 'cover'
+                    });
+                }
+            }
+            var cubeSlideTimer;
+            function startCubeSlideshow(list, intervalMs) {
+                if (cubeSlideTimer) clearInterval(cubeSlideTimer);
+                // 基于配对后的内侧图片数量推进
+                var innerImages = list.filter(function(path){
+                    var filename = path.split('/').pop();
+                    return filename.match(/^0\d+\./);
+                });
+                var n = innerImages.length || list.length;
+                var startIndex = 0;
+                applyCubeSet(startIndex, list);
+                var step = n >= 6 ? 6 : 1; // 至少能填满内层
+                cubeSlideTimer = setInterval(function(){
+                    if (!document.hidden && n > 0) {
+                        startIndex = (startIndex + step) % n;
+                        applyCubeSet(startIndex, list);
+                    }
+                }, intervalMs);
+            }
+
+            function initCubePhotosFromConfig() {
+                var defaultPhotos = [
+                    './img-one/01.jpg','./img-one/02.jpg','./img-one/03.jpg','./img-one/04.jpg','./img-one/05.jpg','./img-one/06.jpg',
+                    './img-one/1.jpg','./img-one/2.jpg','./img-one/3.jpg','./img-one/4.jpg','./img-one/5.jpg','./img-one/6.jpg'
+                ];
+                return fetch('./cube-photos.json', { cache: 'no-cache' })
+                    .then(function(res){ return res.ok ? res.json() : Promise.reject(res.status); })
+                    .then(function(data){
+                        var list = Array.isArray(data.photos) ? data.photos.filter(Boolean) : [];
+                        var interval = Number(data.slideInterval) || 4000;
+                        if (!list.length) list = defaultPhotos;
+                        startCubeSlideshow(list, interval);
+                    })
+                    .catch(function(){
+                        startCubeSlideshow(defaultPhotos, 4000);
+                    });
+            }
+
+            initCubePhotosFromConfig();
         });
     </script>
-    <style>
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
 
-        .container {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #000000;
-        }
-    </style>
-</body>
-
-</html>
+ </body>
+ 
+ </html>

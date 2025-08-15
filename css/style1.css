@@ -38,7 +38,8 @@ body {
     bottom: 0;
 }
 
-.m-main .player>a {
+/* 新增：按钮替代链接的样式 */
+.m-main .player>button {
     display: inline-block;
     width: 20px;
     margin: 0 auto;
@@ -46,10 +47,17 @@ body {
     color: #FFF;
     text-align: center;
     float: left;
-    font-size: 12px
+    font-size: 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+.m-main .player>button:focus {
+    outline: 2px solid rgba(211, 238, 223, 0.8);
+    outline-offset: 2px;
 }
 
-.m-main .player>a img {
+.m-main .player>button img {
     width: 30px;
     height: 30px;
     position: absolute;
@@ -178,8 +186,7 @@ li {
 
 .minbox li:nth-child(2) {
     background: url(../img-one/02.jpg) no-repeat 0 0;
-    -webkit-transform: rotateX(180deg) translateZ(50px);
-    /* transform: rotate(180deg); */
+    -webkit-transform: rotateY(180deg) translateZ(50px);
 }
 
 .minbox li:nth-child(3) {
@@ -210,7 +217,6 @@ li {
 .maxbox li:nth-child(2) {
     background: url(../img-one/2.jpg) no-repeat 0 0;
     -webkit-transform: translateZ(50px);
-    /* transform: rotate(180deg); */
 }
 
 .maxbox li:nth-child(3) {
@@ -259,7 +265,7 @@ li {
 }
 
 .maxbox li:nth-child(2) {
-    -webkit-transform: rotateX(180deg) translateZ(100px);
+    -webkit-transform: rotateY(180deg) translateZ(100px);
 }
 
 .maxbox li:nth-child(3) {
@@ -288,7 +294,7 @@ li {
 }
 
 .box:hover ol li:nth-child(2) {
-    -webkit-transform: rotateX(180deg) translateZ(300px);
+    -webkit-transform: rotateY(180deg) translateZ(300px);
     width: 400px;
     height: 400px;
     opacity: 0.8;
