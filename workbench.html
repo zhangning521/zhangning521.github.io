@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#218478">
 <title>课间 · 教学工作台</title>
 <style>
@@ -266,6 +266,31 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 .kk-todo-add .btn{flex:none}
 @media(max-width:760px){.kk-todo-list{padding-left:18px;padding-right:18px}.kk-todo-add{padding-left:18px;padding-right:18px}}
 .kk-daily-head{align-items:flex-start;gap:8px}.kk-daily-head>div:first-child{min-width:0}.kk-daily-head p{line-height:1.7}.kk-day-nav{gap:2px}.kk-day-nav button{padding:4px;min-width:24px}.kk-day-nav [data-day="today"]{font-size:10px}.kk-day-nav button:disabled{cursor:default;opacity:.4}
+
+/* Phone layout: daily timetable, thumb-sized controls and readable expense cards. */
+.kk-mobile-tabs,.kk-mobile-calendar-controls{display:none}
+@media(max-width:760px){
+ html,body{max-width:100%;overflow-x:hidden}body{font-size:14px}.wrap.kk-main{padding:0 12px calc(86px + env(safe-area-inset-bottom))}
+ .kk-topbar{min-height:56px;gap:8px}.kk-crumb{gap:8px}.kk-crumb>span{display:none}.kk-crumb b{font-size:13px}.kk-menu{min-width:40px;min-height:44px;display:grid;place-items:center}.kk-top-actions{min-width:0;gap:6px}.kk-top-actions .btn{font-size:11px;min-height:38px;padding:7px 9px;white-space:nowrap}.pill{font-size:9px;max-width:134px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:6px}
+ .kk-heading{display:block;padding:18px 2px 20px}.kk-eyebrow{font-size:10px;margin-bottom:7px}.kk-heading h1{font-size:22px;line-height:1.4}.kk-heading p{font-size:12px;line-height:1.7;margin-top:7px}.kk-heading-actions{display:flex;width:100%;margin-top:14px;gap:9px}.kk-heading-actions .btn{flex:1;min-height:44px;font-size:13px}
+ .kk-dashboard{display:flex;flex-direction:column}.kk-calendar{order:2}.kk-today{order:1}.card{border-radius:14px;margin-bottom:16px}.kk-panel-head{padding:16px}.kk-panel-head h2{font-size:15px}.kk-panel-head p{font-size:11px}.kk-panel-foot{padding:12px 14px;gap:8px}.kk-legend{font-size:10px;gap:8px}.kk-link{font-size:12px;min-height:36px}.kk-week-nav button{min-width:36px;min-height:40px;font-size:12px}.kk-day-nav button{min-width:36px}.kk-day-nav [data-day="today"]{font-size:12px}.kk-today #kk-today{padding:0 16px 8px}.kk-today-foot{display:none}.kk-timeline{padding-bottom:16px}.kk-timeline strong{font-size:14px}.kk-timeline small,.kk-timeline time{font-size:12px}.kk-empty{padding:25px 16px;font-size:13px}.kk-empty strong{font-size:14px}
+ .kk-todo-list{max-height:210px;padding:0 16px 8px}.kk-todo-item{padding:11px 0;gap:11px;min-height:48px}.kk-todo-item input{width:20px;height:20px;margin-top:2px}.kk-todo-item strong{font-size:13px}.kk-todo-item small{font-size:11px}.kk-todo-add{padding:12px 16px 16px;gap:8px}.kk-todo-add input{font-size:16px;min-height:44px}.kk-todo-add .btn{min-height:44px;font-size:12px}.kk-todo-empty{font-size:13px}.kk-count{font-size:11px}
+ .kk-mobile-tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:7px 4px calc(7px + env(safe-area-inset-bottom));background:#fcfdfcf5;border-top:1px solid var(--line);box-shadow:0 -3px 16px #233a2f06;z-index:30;backdrop-filter:blur(12px)}.kk-mobile-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:48px;padding:4px 0;border-radius:9px;color:#899b91;font-size:11px}.kk-mobile-tab .kk-icon{width:20px;height:20px}.kk-mobile-tab.active{color:var(--accent);background:var(--accent-soft);font-weight:600}.kk-sidebar{padding-top:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));overflow-y:auto}.kk-nav{min-height:48px}
+ .kk-course-calendar{min-width:0}.kk-course-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}.kk-responsive-timetable.is-week{min-width:850px}.kk-responsive-timetable.is-day{min-width:0}.kk-ct-head.kk-ct-single,.kk-ct-body.kk-ct-single{grid-template-columns:44px minmax(0,1fr)}.kk-ct-single .kk-time-fold{left:44px}.kk-ct-single .kk-ct-event{padding:8px 10px}.kk-ct-single .kk-ct-event strong{font-size:14px;line-height:1.5}.kk-ct-single .kk-ct-event small{font-size:11px;line-height:1.6}.kk-ct-single .kk-ct-axis time{font-size:11px;right:5px}.kk-ct-head strong{font-size:17px}.kk-fold-note{font-size:11px;line-height:1.7;padding:10px 13px}.kk-course-foot{font-size:12px;line-height:1.8;padding:12px 16px}.kk-course-toolbar{padding:12px 14px;gap:8px;flex-wrap:wrap}.kk-course-toolbar>strong{font-size:12px}.kk-course-toolbar .kk-week-nav{gap:3px}
+ .kk-mobile-calendar-controls{display:block;position:sticky;left:0;background:#fff;z-index:3;width:100%;padding:0 10px 10px}.kk-calendar-mode{display:flex;gap:5px;padding:0 4px 9px}.kk-calendar-mode button{flex:1;min-height:40px;border-radius:8px;font-size:12px;color:var(--muted);background:#f4f7f5}.kk-calendar-mode [aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}.kk-calendar-day-strip{position:relative;display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}.kk-calendar-day-strip::-webkit-scrollbar{display:none}.kk-calendar-day-strip button{flex:1 0 40px;min-height:52px;display:grid;align-content:center;gap:2px;border-radius:9px;font-size:11px;color:var(--muted)}.kk-calendar-day-strip strong{font-size:17px;font-weight:500}.kk-calendar-day-strip .is-selected{background:var(--accent);color:white}
+ .kk-period{margin-bottom:14px;gap:8px}.months{flex-wrap:nowrap;overflow-x:auto;max-width:calc(100vw - 32px);max-height:none;padding-bottom:4px}.mchip{min-width:48px;min-height:40px;font-size:13px}.kk-local{white-space:normal;line-height:1.7;font-size:10px}.kk-bottom-stats>h2{font-size:15px}.grid4{gap:10px}.metric{padding:14px;min-height:120px}.metric .k{font-size:12px}.metric .v{font-size:25px}.metric .f{font-size:11px;line-height:1.7}.kk-stat-icon{display:none}
+ .card-h{flex-wrap:wrap;gap:9px;padding:16px}.card-h h3{font-size:15px}.card-h .hint{font-size:12px;line-height:1.7;max-width:100%;overflow-wrap:anywhere}.card-h .right{margin-left:auto}.btn,.btn.sm{min-height:44px;font-size:12px}.kk-filter-bar{padding:12px 16px;gap:10px}.kk-filter-bar label{font-size:13px}.kk-filter-bar select{font-size:16px;min-height:44px}.kk-filter-bar>span{font-size:11px;line-height:1.7}.kk-route-add{align-items:stretch}.kk-route-add input{font-size:16px;min-height:44px}.kk-route-manager>div:first-child>span{font-size:11px}.kk-route-manager strong{font-size:13px}
+ .kk-mobile-table{display:block;width:100%;border-collapse:separate}.kk-mobile-table thead{display:none}.kk-mobile-table tbody{display:grid;gap:12px;padding:12px}.kk-mobile-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;border:1px solid var(--line);border-radius:11px;padding:13px;background:white;position:relative}.kk-mobile-table tbody td{display:flex;flex-direction:column;gap:4px;border:0;padding:0!important;margin:0;min-width:0;max-width:none;white-space:normal;overflow-wrap:anywhere;font-size:13px;background:transparent}.kk-mobile-table tbody td:before{content:attr(data-label);font-size:11px;font-weight:400;color:var(--muted)}.kk-mobile-table td[data-label="事项"],.kk-mobile-table td[data-label="报销事项"],.kk-mobile-table td[data-label="往返路线"],.kk-mobile-table td[data-label="课程名称"],.kk-mobile-table td[data-label="发票"],.kk-mobile-table td[colspan]{grid-column:1/-1}.kk-mobile-table td[colspan]:before,.kk-mobile-table td[data-label=""]:before{display:none}.kk-mobile-table td[data-label=""]{position:absolute;top:5px;right:7px;display:block}.kk-mobile-table td.wrap{width:auto;min-width:0}.kk-mobile-table input:not([type="checkbox"]),.kk-mobile-table select{width:100%!important;min-width:0!important;min-height:44px;font-size:16px;box-sizing:border-box}.kk-mobile-table .kk-check{min-height:44px;font-size:13px;white-space:normal;gap:9px;display:flex;align-items:center;background:var(--accent-soft);padding:8px;border-radius:8px}.kk-mobile-table .kk-check input{width:20px;height:20px;flex:none}.kk-mobile-table .rmv{min-width:44px;min-height:44px;font-size:22px;color:var(--warn);align-self:flex-start}.kk-mobile-table .kk-marked{background:#f1f8f3}.tbl-wrap{max-width:100%;overflow-x:auto}
+ .addbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:14px}.addbar input,.addbar select{font-size:16px;min-width:0!important;width:100%!important;min-height:44px}.addbar #a-title,.addbar #a-route{grid-column:1/-1}.todoadd{flex-wrap:wrap;gap:9px;padding:14px}.todoadd #td-title{flex-basis:100%;font-size:16px;min-height:44px}.todoadd input[type="date"]{flex:1;font-size:16px;min-height:44px}.todo .tx b{font-size:14px}.todo .tx span{font-size:12px}.todo{padding:14px;gap:12px}.todo .cb{width:24px;height:24px;min-width:24px}.todo .del{opacity:1;min-width:36px;min-height:36px}
+ dialog{width:calc(100% - 20px);max-width:none;max-height:calc(100dvh - 24px);margin:auto;overflow:auto;border-radius:14px}dialog .dlg-h{position:sticky;top:0;background:white;z-index:1;padding:14px 16px}dialog .dlg-h button{min-width:40px;min-height:40px}.dlg-b{padding:16px}dialog input:not([type="checkbox"]),dialog select,dialog textarea{font-size:16px;min-width:0;max-width:100%;min-height:44px}.fld2{grid-template-columns:1fr}.fld2 .fld2{grid-template-columns:1fr 1fr}.ed-foot,.dlg-b .row{flex-wrap:wrap}.ed-foot .btn{flex:1 1 42%}.kv{font-size:12px}#toast{max-width:calc(100vw - 28px);white-space:normal;text-align:center;bottom:calc(83px + env(safe-area-inset-bottom));font-size:12px;line-height:1.7}.kk-footer{font-size:10px;gap:8px;flex-wrap:wrap;line-height:1.7}
+}
+@media(max-width:360px){.kk-crumb b{display:none}.wrap.kk-main{padding-left:10px;padding-right:10px}.kk-top-actions .pill{max-width:115px;font-size:8px}.kk-heading h1{font-size:21px}.kk-top-actions .btn{font-size:10px}.kk-mobile-tab{font-size:10px}.kk-panel-head{padding:14px}.kk-day-nav button{min-width:30px}.kk-ct-single .kk-ct-event strong{font-size:13px}}
+
+@media(max-width:760px){
+ .kk-main:not([data-current-view="overview"]) .kk-heading{padding:10px 0 14px}.kk-main:not([data-current-view="overview"]) .kk-heading>div:first-child{display:none}.kk-main:not([data-current-view="overview"]) .kk-heading-actions{margin-top:0}
+ .kk-period>div{flex-direction:row;align-items:center;width:100%;min-width:0;gap:10px}.kk-period .months{flex:1;min-width:0}.kk-period .kk-caption{white-space:nowrap}.kk-period>.kk-local{display:none}
+ .card-h>h3{order:0;flex:1}.card-h>.right{order:1}.card-h>.hint{order:2;flex-basis:100%;font-weight:400}.card-h{align-items:center;padding:13px 14px}.card-h .btn{padding:8px 10px}
+}
 </style>
 </head>
 <body>
@@ -358,6 +383,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
   </section>
 <footer class="kk-footer"><span>课间 · 在线教学工作台</span><span>北京时间 UTC+8</span></footer>
 </main></div>
+<nav class="kk-mobile-tabs" aria-label="手机底部导航"><button class="kk-mobile-tab" data-view="overview" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>首页</span></button><button class="kk-mobile-tab" data-view="courses" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></svg><span>课表</span></button><button class="kk-mobile-tab" data-view="agenda" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h7a4 4 0 0 1 0 8H9a3 3 0 0 0 0 6h7"/></svg><span>行程</span></button><button class="kk-mobile-tab" data-view="expenses" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v12H6a3 3 0 0 1-3-3V6m17 7h-5v4h5"/></svg><span>报销</span></button><button class="kk-mobile-tab" data-view="overtime" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>加班</span></button><button class="kk-mobile-tab" data-view="todos" aria-current="false"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 1.5 1.5L7 4M10 6h11M3 12h4m3 0h11M3 18h4m3 0h11"/></svg><span>待办</span></button></nav>
 
 <!-- 日历同步与备份 -->
 <dialog id="dlg">
@@ -907,15 +933,15 @@ function renderCourse() {
   $('#c-hint').textContent=`${monthTitle(curMonth)} · ${cs.length} 节 · ${durationText(minutes)}（线下 ${off} / 线上 ${cs.length-off}）`;
   $('#kk-course-week-label').textContent=weekLabel(kkCourseWeek);
   const week=weekItems(courseInstances().map(x=>x.i),kkCourseWeek);
-  $('#kk-course-calendar').innerHTML=weekGrid(week,kkCourseWeek);
+  $('#kk-course-calendar').innerHTML=responsiveWeekGrid(week,kkCourseWeek,'courses');
   $('#kk-course-week-total').textContent=`本周 ${week.length} 节 · ${durationText(totalMinutes(week))}。课时按实际起止时间计算。`;
 }
 
 const weekLabel = start => `${key(start)} — ${key(addDays(start,6))}`;
 const weekItems = (items,start) => items.filter(i=>i.start<addDays(start,7)&&i.end>start);
-function timetableBands(items,start) {
+function timetableBands(items,start,days=7,pixels=.8) {
   const spans=[];
-  for(let n=0;n<7;n++){
+  for(let n=0;n<days;n++){
     const date=addDays(start,n),next=addDays(date,1);
     items.forEach(i=>{
       if(i.start<next && i.end>date){
@@ -939,23 +965,24 @@ function timetableBands(items,start) {
   return groups.map((band,n)=>{
     const gap=n?{from:groups[n-1].to,to:band.from,top}:null;
     if(gap)top+=20;
-    const result={from:band.from,to:band.to,top,height:(band.to-band.from)*.8,gap};
+    const result={from:band.from,to:band.to,top,height:(band.to-band.from)*pixels,gap};
     top+=result.height;return result;
   });
 }
 const clockMinute = minute => {
   const m=Math.round(minute);return `${pad2(Math.floor(m/60))}:${pad2(m%60)}`;
 };
-function weekGrid(items,start) {
-  const week=weekItems(items,start),bands=timetableBands(week,start);
-  const head=`<div class="kk-ct-head"><div>时间</div>${Array.from({length:7},(_,n)=>{
-    const d=addDays(start,n);return `<div class="${key(d)===key(new Date())?'today':''}">${WD[n]}<strong>${d.getMonth()+1}/${d.getDate()}</strong></div>`;
+function weekGrid(items,start,days=7) {
+  const pixels=days===1?1.2:.8;
+  const week=items.filter(i=>i.start<addDays(start,days)&&i.end>start),bands=timetableBands(week,start,days,pixels);
+  const head=`<div class="kk-ct-head ${days===1?'kk-ct-single':''}"><div>时间</div>${Array.from({length:days},(_,n)=>{
+    const d=addDays(start,n);return `<div class="${key(d)===key(new Date())?'today':''}">${WD[(d.getDay()+6)%7]}<strong>${d.getMonth()+1}/${d.getDate()}</strong></div>`;
   }).join('')}</div>`;
-  if(!bands.length)return head+'<div class="kk-empty">本周没有安排。</div>';
+  if(!bands.length)return head+`<div class="kk-empty">${days===1?'当天':'本周'}没有安排。</div>`;
   const height=bands[bands.length-1].top+bands[bands.length-1].height;
   const position=minute=>{
     const band=bands.find(b=>minute>=b.from && minute<=b.to);
-    return band?band.top+(minute-band.from)*.8:height;
+    return band?band.top+(minute-band.from)*pixels:height;
   };
   const marks=[];
   bands.forEach(b=>{
@@ -966,7 +993,7 @@ function weekGrid(items,start) {
   const gaps=bands.filter(b=>b.gap).map(b=>b.gap);
   const axis=`<div class="kk-ct-axis" style="height:${height}px">${marks.map(m=>`<time style="top:${m.top}px">${clockMinute(m.minute)}</time>`).join('')}${gaps.map(g=>`<span class="kk-axis-fold" style="top:${g.top}px" aria-hidden="true">···</span>`).join('')}</div>`;
   const lines=marks.map(m=>`<i class="kk-time-line" style="top:${m.top}px" aria-hidden="true"></i>`).join('');
-  const cols=Array.from({length:7},(_,n)=>{
+  const cols=Array.from({length:days},(_,n)=>{
     const date=addDays(start,n),next=addDays(date,1);
     const day=week.filter(i=>i.start<next&&i.end>date).map(i=>({i,co:courseOf(i),from:Math.max(date.getTime(),i.start.getTime()),to:Math.min(next.getTime(),i.end.getTime())}));
     return `<div class="kk-ct-day" style="height:${height}px">${lines}${layoutCourses(day).map(({i,co,from,to,lane,lanes})=>{
@@ -977,7 +1004,24 @@ function weekGrid(items,start) {
     }).join('')}</div>`;
   }).join('');
   const folds=gaps.map(g=>`<div class="kk-time-fold" style="top:${g.top}px">${clockMinute(g.from)}–${clockMinute(g.to)} 空闲已折叠</div>`).join('');
-  return head+`<div class="kk-ct-body">${axis}${cols}${folds}</div>`+'<div class="kk-fold-note">整周共同空闲满 1 小时的时段自动收起。</div>';
+  return head+`<div class="kk-ct-body ${days===1?'kk-ct-single':''}">${axis}${cols}${folds}</div>`+`<div class="kk-fold-note">${days===1?'当天':'整周共同'}空闲满 1 小时的时段自动收起。${days===7?' 左右滑动可查看整周。':''}</div>`;
+}
+
+const kkCalendarModes=Object.create(null),kkCalendarDays=Object.create(null);
+function responsiveWeekGrid(items,start,id) {
+  const phone=!!window.matchMedia&&window.matchMedia('(max-width:760px)').matches;
+  const mode=phone?(kkCalendarModes[id]||'day'):'week';
+  const current=Math.round((d0(new Date())-start)/86400000);
+  const day=Number.isInteger(kkCalendarDays[id])?kkCalendarDays[id]:(current>=0&&current<7?current:0);
+  const controls=`<div class="kk-mobile-calendar-controls"><div class="kk-calendar-mode" role="group" aria-label="课表显示方式"><button data-calendar-mode="day" data-calendar-id="${id}" aria-pressed="${mode==='day'}">日课表</button><button data-calendar-mode="week" data-calendar-id="${id}" aria-pressed="${mode==='week'}">周课表</button></div><div class="kk-calendar-day-strip" aria-label="选择课表日期">${Array.from({length:7},(_,n)=>{const d=addDays(start,n);return `<button data-calendar-day="${n}" data-calendar-id="${id}" class="${n===day?'is-selected':''}" aria-pressed="${n===day}" aria-label="查看${d.getMonth()+1}月${d.getDate()}日的课表"><span>${WD[n]}</span><strong>${d.getDate()}</strong></button>`;}).join('')}</div></div>`;
+  if(phone)requestAnimationFrame(()=>{$$('.kk-calendar-day-strip').forEach(strip=>{const active=strip.querySelector('.is-selected');if(active)strip.scrollLeft=active.offsetLeft-(strip.clientWidth-active.clientWidth)/2;});});
+  return controls+`<div class="kk-responsive-timetable ${mode==='day'?'is-day':'is-week'}">${weekGrid(items,mode==='day'?addDays(start,day):start,mode==='day'?1:7)}</div>`;
+}
+function kkLabelTable(table) {
+  if(!table)return;
+  const labels=Array.from(table.querySelectorAll('thead th'),th=>th.textContent.trim());
+  table.classList.add('kk-mobile-table');
+  table.querySelectorAll('tbody tr').forEach(row=>Array.from(row.cells).forEach((cell,n)=>{if(cell.colSpan===1)cell.dataset.label=labels[n]||'';}));
 }
 
 function layoutCourses(events) {
@@ -1029,6 +1073,7 @@ function renderMoney() {
     <td><input data-inv="${esc(r.key)}" value="${esc(r.invoice)}" placeholder="发票文件名" style="width:120px" aria-label="发票：${esc(r.title)} ${key(r.date)}"></td>
     <td><button class="rmv" data-rm2="${esc(r.key)}" title="移除这条">×</button></td></tr>`).join('');
   $('#m-table').innerHTML=`<thead><tr><th>日期</th><th>事项</th><th>往返路线</th><th>类别</th><th>金额</th><th>提交状态</th><th>报销标记</th><th>发票</th><th></th></tr></thead><tbody>${body||'<tr><td colspan="9"><div class="empty">当前筛选下没有报销记录。</div></td></tr>'}</tbody>`;
+  kkLabelTable($('#m-table'));
 }
 
 function renderOt() {
@@ -1037,6 +1082,7 @@ function renderOt() {
   const applied=all.filter(r=>r.applied),pending=all.filter(r=>!r.applied);
   $('#o-sum').textContent=`${monthTitle(curMonth)} · 截至今天 · 共 ${all.length} 次 / ${hoursFromMinutes(totalMinutes(all))} 小时 · 已申请 ${applied.length} 次 / ${hoursFromMinutes(totalMinutes(applied))} 小时 · 未申请 ${pending.length} 次 / ${hoursFromMinutes(totalMinutes(pending))} 小时`;
   $('#o-table').innerHTML=`<thead><tr><th>日期</th><th>星期</th><th>类型</th><th>时间</th><th>课程名称</th><th>时长</th><th>调休申请标记</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.applied?'kk-marked':''}"><td class="num">${key(r.i.start)}</td><td class="muted">${WD[(r.i.start.getDay()+6)%7]}</td><td><span class="ot-tag ${r.type==='周末'?'wk':'hd'}">${r.type}</span></td><td class="num">${hm(r.i.start)}–${hm(r.i.end)}</td><td class="wrap kk-ot-title">${esc(courseTitle(r.i))}</td><td class="num">${hoursFromMinutes(minutesOf(r.i))} 小时</td><td><label class="kk-check"><input type="checkbox" data-ot="${esc(r.i.sid)}" ${r.applied?'checked':''}><span>${r.applied?'已申请调休':'未申请调休'}</span></label></td></tr>`).join('')||'<tr><td colspan="7"><div class="empty">当前筛选下没有加班记录。</div></td></tr>'}</tbody>`;
+  kkLabelTable($('#o-table'));
 }
 
 function kkRenderTodo() {
@@ -1115,6 +1161,7 @@ const kkViews = {
 const kkSvg = (name) => ({"layers": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5\"/></svg>", "grid": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/></svg>", "calendar": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2\"/></svg>", "route": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"5\" r=\"2\"/><circle cx=\"18\" cy=\"19\" r=\"2\"/><path d=\"M8 5h7a4 4 0 0 1 0 8H9a3 3 0 0 0 0 6h7\"/></svg>", "wallet": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v12H6a3 3 0 0 1-3-3V6m17 7h-5v4h5\"/></svg>", "clock": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>", "checklist": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 6 1.5 1.5L7 4M10 6h11M3 12h4m3 0h11M3 18h4m3 0h11\"/></svg>", "sliders": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 3v18M12 3v18M20 3v18\"/><rect x=\"1\" y=\"7\" width=\"6\" height=\"4\" rx=\"1\"/><rect x=\"9\" y=\"14\" width=\"6\" height=\"4\" rx=\"1\"/><rect x=\"17\" y=\"6\" width=\"6\" height=\"4\" rx=\"1\"/></svg>", "refresh": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 7V3l-4 4m4 0A9 9 0 0 0 4 8m0 9v4l4-4m-4 0a9 9 0 0 0 16-1\"/></svg>", "plus": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>", "arrow": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg>", "sun": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5\"/></svg>", "spark": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3L12 3Z\"/></svg>", "lock": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"10\" width=\"14\" height=\"11\" rx=\"2\"/><path d=\"M8 10V7a4 4 0 0 1 8 0v3m-4 5v2\"/></svg>", "menu": "<svg class=\"kk-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h16M4 18h16\"/></svg>"})[name] || '';
 function kkSetView(view) {
   if (!kkViews[view]) return;
+  const previousView=kkView;
   kkView = view;
   const period=$('.kk-period');
   if(view==='overview')$('.kk-bottom-stats').insertBefore(period,$('#metrics'));
@@ -1125,12 +1172,13 @@ function kkSetView(view) {
   $('#kk-title').textContent = heading;
   $('#kk-subtitle').textContent = sub;
   $$('[data-page]').forEach(el => { el.hidden = el.dataset.page !== view; });
-  $$('.kk-nav[data-view]').forEach(el => {
+  $$('.kk-nav[data-view],.kk-mobile-tab[data-view]').forEach(el => {
     el.classList.toggle('active',el.dataset.view === view);
     el.setAttribute('aria-current',el.dataset.view === view ? 'page' : 'false');
   });
   $('#kk-sidebar').classList.remove('open'); $('#kk-scrim').hidden = true;
   if (location.hash !== '#' + view) history.replaceState(null,'','#' + view);
+  if(previousView!==view&&window.matchMedia?.('(max-width:760px)').matches)window.scrollTo(0,0);
 }
 function kkRenderDay() {
   const now=new Date(),date=addDays(d0(now),kkDayOffset);
@@ -1146,20 +1194,28 @@ function kkRenderDashboard() {
   const now = new Date(), all = instances();
   $('#kk-date').textContent = `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 · ${WD[(now.getDay()+6)%7]}`;
   $('#kk-week-label').textContent = `${key(kkWeek).replaceAll('-','.')} — ${key(addDays(kkWeek,6)).replaceAll('-','.')}`;
-  $('#kk-week').innerHTML=weekGrid(all,kkWeek);
+  $('#kk-week').innerHTML=responsiveWeekGrid(all,kkWeek,'overview');
   kkRenderDay();
   const pending = moneyRows(curMonth).filter(r=>!r.reimbursed);
   $('#kk-pending-count').textContent = pending.length;
   $('#kk-expenses-preview').innerHTML = pending.length ? `<table class="tbl"><thead><tr><th>日期</th><th>报销事项</th><th>往返路线</th><th>金额</th><th>状态</th></tr></thead><tbody>${pending.slice(0,4).map(r=>`<tr><td class="num">${key(r.date)}</td><td class="wrap">${esc(r.title)}</td><td class="muted">${esc(r.route||"待填写路线")}</td><td class="num">${r.amount?money(r.amount):'<span class="muted">待填写</span>'}</td><td><span class="kk-status">${esc(r.status)}</span></td></tr>`).join('')}</tbody></table>` : '<div class="kk-empty">这个月的待报销已经整理好了。</div>';
   const other=weekItems(all.filter(i=>!courseOf(i)),kkAgendaWeek);
   $('#kk-agenda-week-label').textContent=weekLabel(kkAgendaWeek);
-  $('#kk-agenda-list').innerHTML=weekGrid(other,kkAgendaWeek);
+  $('#kk-agenda-list').innerHTML=responsiveWeekGrid(other,kkAgendaWeek,'agenda');
   $('#kk-agenda-summary').textContent=`本周 ${other.length} 项行程。点击安排可查看或修改详情。`;
   const metricIcons = ['calendar','wallet','clock','checklist'];
   $$('#metrics .metric').forEach((el,n)=>{ el.querySelector('.kk-stat-icon')?.remove(); el.insertAdjacentHTML('beforeend',`<span class="kk-stat-icon">${kkSvg(metricIcons[n])}</span>`); });
+  kkLabelTable($('#kk-expenses-preview table')); 
 }
 function kkBind() {
   document.addEventListener('click',e=>{
+    const calendarMode=e.target.closest('[data-calendar-mode]'),calendarDay=e.target.closest('[data-calendar-day]');
+    if(calendarMode||calendarDay){
+      const el=calendarMode||calendarDay,id=el.dataset.calendarId;
+      if(calendarMode)kkCalendarModes[id]=el.dataset.calendarMode;
+      else {kkCalendarDays[id]=Number(el.dataset.calendarDay);kkCalendarModes[id]='day';}
+      renderCourse();kkRenderDashboard();return;
+    }
     const day=e.target.closest('[data-day]');
     if(day){kkDayOffset=day.dataset.day==='today'?0:kkDayOffset+Number(day.dataset.day);kkRenderDay();return;}
     const nav = e.target.closest('[data-view]');
@@ -1195,6 +1251,7 @@ function kkBind() {
   $('#kk-export-money').onclick = ()=>download(`待报销_${curMonth}.csv`,'\ufeff'+csvMoney(curMonth),'text/csv;charset=utf-8');
   $('#kk-export-ot').onclick = ()=>download(`加班_${curMonth}.csv`,'\ufeff'+csvOt(curMonth),'text/csv;charset=utf-8');
   window.addEventListener('hashchange',()=>kkSetView(location.hash.slice(1)));
+  if(window.matchMedia)window.matchMedia('(max-width:760px)').addEventListener?.('change',()=>{renderCourse();kkRenderDashboard();});
   kkSetView(kkViews[location.hash.slice(1)]?location.hash.slice(1):'overview');
 }
 
