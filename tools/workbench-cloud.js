@@ -4,7 +4,11 @@ const pushFiles=stateToFile;
 const CLOUD_KEY='kejian.feishu.passphrase.v1';
 let cloudBusy=false,cloudError='',taskError='';
 const feishuTodos=()=>S.feishuTasks?.items||[];
-const allTodos=()=>rawTodos().concat(feishuTodos());
+const allTodos=()=>{
+  // Templates saved before the display preference default to showing Feishu tasks.
+  const visible=typeof showFeishuTodos==='undefined'||showFeishuTodos;
+  return rawTodos().concat(visible?feishuTodos():[]);
+};
 const isFeishuTodo=t=>t.source==='feishu-task';
 const todoDeadline=t=>t.dueAt??(t.due?new Date(t.due+'T23:59:59').getTime():Infinity);
 const todoTime=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false});

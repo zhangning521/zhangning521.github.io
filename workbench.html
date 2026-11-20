@@ -292,6 +292,9 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
  .card-h>h3{order:0;flex:1}.card-h>.right{order:1}.card-h>.hint{order:2;flex-basis:100%;font-weight:400}.card-h{align-items:center;padding:13px 14px}.card-h .btn{padding:8px 10px}
 }
 .kk-task-remote{cursor:default;align-items:center}.kk-task-link{color:var(--accent);flex:none;font-size:11px;padding:8px 0;text-decoration:underline;text-underline-offset:3px}@media(max-width:760px){.kk-task-link{font-size:12px;display:inline-flex;min-height:44px;align-items:center}}
+.kk-todo-filter{color:var(--ink-2);min-height:30px;padding-inline:6px}
+.kk-todo-filter input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
+@media(max-width:760px){.kk-todo-filter{min-height:44px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -373,7 +376,10 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
   <section class="card" id="t-card" data-page="todos" hidden>
     <div class="card-h">
       <h3>待办</h3><span class="hint" id="td-hint"></span>
-      <div class="right"><button class="btn sm" id="td-hide">隐藏已完成</button></div>
+      <div class="right">
+        <label class="kk-check kk-todo-filter"><input type="checkbox" id="td-show-feishu" checked><span>显示飞书任务</span></label>
+        <button class="btn sm" id="td-hide">隐藏已完成</button>
+      </div>
     </div>
     <div id="td-list"></div>
     <div class="todoadd">
@@ -776,6 +782,9 @@ const monthLabel = m => (+m.slice(0, 4) === new Date().getFullYear()) ? `${+m.sl
 const inMonth = (d, m) => monthOf(d) === m;
 let curMonth = monthOf(new Date());
 let hideDone = false;
+const FEISHU_TODO_VIEW_KEY = KEY + ".showFeishuTodos";
+let showFeishuTodos = true;
+try { showFeishuTodos = localStorage.getItem(FEISHU_TODO_VIEW_KEY) !== "false"; } catch (e) {}
 
 function monthsList() {
   const set = new Set([curMonth, monthOf(new Date())]);
@@ -1110,6 +1119,7 @@ function renderTodo() {
   const open = list.filter(t => !t.done);
   $("#td-hint").textContent = `${open.length} 条未完成 / 共 ${list.length} 条`;
   $("#td-hide").textContent = hideDone ? "显示已完成" : "隐藏已完成";
+  $("#td-show-feishu").checked = showFeishuTodos;
   const now = new Date();
   const show = list.filter(t => hideDone ? !t.done : true)
     .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || todoDeadline(a)-todoDeadline(b));
@@ -1420,6 +1430,12 @@ function bindTodo() {
   });
   $("#td-title").addEventListener("keydown", e => { if (e.key === "Enter") $("#td-add").click(); });
   $("#td-hide").addEventListener("click", () => { hideDone = !hideDone; renderTodo(); });
+  $("#td-show-feishu").addEventListener("change", e => {
+    showFeishuTodos = e.currentTarget.checked;
+    try { localStorage.setItem(FEISHU_TODO_VIEW_KEY, String(showFeishuTodos)); } catch (e) {}
+    renderTodo();
+    renderMetrics();
+  });
 }
 
 /* ========== 报销编辑 ========== */
@@ -1641,7 +1657,11 @@ const pushFiles=stateToFile;
 const CLOUD_KEY='kejian.feishu.passphrase.v1';
 let cloudBusy=false,cloudError='',taskError='';
 const feishuTodos=()=>S.feishuTasks?.items||[];
-const allTodos=()=>rawTodos().concat(feishuTodos());
+const allTodos=()=>{
+  // Templates saved before the display preference default to showing Feishu tasks.
+  const visible=typeof showFeishuTodos==='undefined'||showFeishuTodos;
+  return rawTodos().concat(visible?feishuTodos():[]);
+};
 const isFeishuTodo=t=>t.source==='feishu-task';
 const todoDeadline=t=>t.dueAt??(t.due?new Date(t.due+'T23:59:59').getTime():Infinity);
 const todoTime=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false});
