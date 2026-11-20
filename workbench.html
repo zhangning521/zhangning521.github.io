@@ -292,9 +292,10 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
  .card-h>h3{order:0;flex:1}.card-h>.right{order:1}.card-h>.hint{order:2;flex-basis:100%;font-weight:400}.card-h{align-items:center;padding:13px 14px}.card-h .btn{padding:8px 10px}
 }
 .kk-task-remote{cursor:default;align-items:center}.kk-task-link{color:var(--accent);flex:none;font-size:11px;padding:8px 0;text-decoration:underline;text-underline-offset:3px}@media(max-width:760px){.kk-task-link{font-size:12px;display:inline-flex;min-height:44px;align-items:center}}
-.kk-todo-filter{color:var(--ink-2);min-height:30px;padding-inline:6px}
-.kk-todo-filter input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
-@media(max-width:760px){.kk-todo-filter{min-height:44px;font-size:12px}}
+.kk-task-check-row{display:flex;align-items:flex-start;min-width:0;flex:1;gap:inherit;cursor:pointer}
+.kk-task-check-row>span{min-width:0;overflow-wrap:anywhere}
+.todo .kk-task-check-row input{appearance:auto;width:16px;height:16px;margin:2px 0 0;flex:none;accent-color:var(--accent);cursor:pointer}
+@media(max-width:760px){.todo .kk-task-check-row input{width:20px;height:20px}}
 .kk-timeline.is-ended{display:flex;align-items:center;gap:9px;min-height:32px;padding:4px 0 4px 18px;grid-column:1/-1}
 .kk-timeline.is-ended:before{top:50%;transform:translateY(-50%);background:#b2c2b7;box-shadow:0 0 0 1px #b2c2b7}
 .kk-timeline.is-ended time{flex:none;margin:0;white-space:nowrap}
@@ -381,10 +382,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
   <section class="card" id="t-card" data-page="todos" hidden>
     <div class="card-h">
       <h3>待办</h3><span class="hint" id="td-hint"></span>
-      <div class="right">
-        <label class="kk-check kk-todo-filter"><input type="checkbox" id="td-show-feishu" checked><span>显示飞书任务</span></label>
-        <button class="btn sm" id="td-hide">隐藏已完成</button>
-      </div>
+      <div class="right"><button class="btn sm" id="td-hide">隐藏已完成</button></div>
     </div>
     <div id="td-list"></div>
     <div class="todoadd">
@@ -501,12 +499,15 @@ const money = n => "¥" + (Math.round((Number(n) || 0) * 100) / 100).toLocaleStr
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /* ========== 状态存取 ========== */
-const blank = () => ({ settings: null, events: null, todos: null, fix: {}, added: [], extra: [], money: {}, overtime: {}, routes: [], savedAt: null });
+const blank = () => ({ settings: null, events: null, todos: null, feishuTodoDone: {}, fix: {}, added: [], extra: [], money: {}, overtime: {}, routes: [], savedAt: null });
+const normalizeFeishuTodoDone = value => Object.fromEntries(Object.entries(value || {}).filter(([id, done]) =>
+  done === true && /^feishu-task:[a-f0-9-]{36}$/.test(id)));
 let S = blank();
 try {
   const raw = localStorage.getItem(KEY);
   if (raw) S = Object.assign(blank(), JSON.parse(raw));
 } catch (e) { /* 忽略损坏的本地数据 */ }
+S.feishuTodoDone = normalizeFeishuTodoDone(S.feishuTodoDone);
 S.fix = S.fix || {}; S.added = S.added || []; S.extra = S.extra || []; S.money = S.money || {}; S.overtime = S.overtime || {}; S.routes = Array.isArray(S.routes) ? S.routes : [];
 // 首次使用同步数据：清掉示例数据时代的本地待办/覆盖
 if (CAL) {
@@ -787,9 +788,6 @@ const monthLabel = m => (+m.slice(0, 4) === new Date().getFullYear()) ? `${+m.sl
 const inMonth = (d, m) => monthOf(d) === m;
 let curMonth = monthOf(new Date());
 let hideDone = false;
-const FEISHU_TODO_VIEW_KEY = KEY + ".showFeishuTodos";
-let showFeishuTodos = true;
-try { showFeishuTodos = localStorage.getItem(FEISHU_TODO_VIEW_KEY) !== "false"; } catch (e) {}
 
 function monthsList() {
   const set = new Set([curMonth, monthOf(new Date())]);
@@ -1100,22 +1098,40 @@ function renderOt() {
   kkLabelTable($('#o-table'));
 }
 
+function feishuTodoCheckbox(todo) {
+  const action = todo.done ? '恢复待办' : '完成待办';
+  return `<input type="checkbox" data-todo-toggle="${esc(todo.id)}" ${todo.done ? 'checked' : ''} aria-label="${action}：${esc(todo.title)}">`;
+}
+
 function kkRenderTodo() {
   const now=new Date();
   const pending=allTodos().filter(t=>!t.done).sort((a,b)=>todoDeadline(a)-todoDeadline(b));
   $('#kk-todo-count').textContent=pending.length;
-  $('#kk-todo-hint').textContent=pending.length?'按截止时间排列':'一件一件，慢慢做好。';
+  $('#kk-todo-hint').textContent=pending.length?'按截止时间排列 · 勾选完成':'一件一件，慢慢做好。';
   $('#kk-todo-list').innerHTML=pending.length?pending.slice(0,5).map(t=>{
     const overdue=todoDeadline(t)<now;
-    if(isFeishuTodo(t))return `<div class="kk-todo-item kk-task-remote ${overdue?'overdue':''}"><span><strong>${esc(t.title)}</strong><small>飞书任务${t.due?` · <span class="kk-todo-due">${overdue?'已逾期 · ':''}截止 ${todoDueText(t)}</span>`:''}</small></span>${feishuTodoLink(t)}</div>`;
+    if (isFeishuTodo(t)) {
+      return `<div class="kk-todo-item kk-task-remote ${overdue?'overdue':''}">
+        <label class="kk-task-check-row">${feishuTodoCheckbox(t)}<span>
+          <strong>${esc(t.title)}</strong>
+          <small>飞书任务${t.due?` · <span class="kk-todo-due">${overdue?'已逾期 · ':''}截止 ${todoDueText(t)}</span>`:''}</small>
+        </span></label>${feishuTodoLink(t)}
+      </div>`;
+    }
     return `<label class="kk-todo-item ${overdue?'overdue':''}"><input type="checkbox" data-todo-toggle="${esc(t.id)}" aria-label="完成：${esc(t.title)}"><span><strong>${esc(t.title)}</strong>${t.due?`<small class="kk-todo-due">${overdue?'已逾期 · ':''}截止 ${esc(t.due)}</small>`:''}${t.src?`<small>来自 ${esc(t.src)}</small>`:''}</span></label>`;
   }).join(''):'<div class="kk-todo-empty">暂无未完成事项，留一点时间给自己。</div>';
   if(pending.length>5)$('#kk-todo-hint').textContent=`还有 ${pending.length} 条未完成 · 这里显示前 5 条`;
 }
 function toggleTodo(id) {
-  const todo=rawTodos().find(t=>t.id===id);
-  if(!todo)return;
-  todo.done=!todo.done;save();renderTodo();renderMetrics();
+  const todo = rawTodos().find(t => t.id === id);
+  if (todo) {
+    todo.done = !todo.done;
+  } else {
+    if (!feishuTodos().some(t => t.id === id)) return;
+    if (S.feishuTodoDone[id]) delete S.feishuTodoDone[id];
+    else S.feishuTodoDone[id] = true;
+  }
+  save(); renderTodo(); renderMetrics();
 }
 
 function renderTodo() {
@@ -1124,14 +1140,20 @@ function renderTodo() {
   const open = list.filter(t => !t.done);
   $("#td-hint").textContent = `${open.length} 条未完成 / 共 ${list.length} 条`;
   $("#td-hide").textContent = hideDone ? "显示已完成" : "隐藏已完成";
-  $("#td-show-feishu").checked = showFeishuTodos;
   const now = new Date();
   const show = list.filter(t => hideDone ? !t.done : true)
     .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || todoDeadline(a)-todoDeadline(b));
 
   $("#td-list").innerHTML = show.length ? show.map(t => {
     const over = !t.done && todoDeadline(t) < now;
-    if(isFeishuTodo(t))return `<div class="todo kk-task-remote ${over?'overdue':''}"><div class="tx"><b>${esc(t.title)}</b><span>飞书任务${t.due?` · ${over?'已逾期 · ':''}截止 ${todoDueText(t)}`:''}</span></div>${feishuTodoLink(t)}</div>`;
+    if (isFeishuTodo(t)) {
+      return `<div class="todo kk-task-remote ${t.done?'done':''} ${over?'overdue':''}">
+        <label class="kk-task-check-row">${feishuTodoCheckbox(t)}<span class="tx">
+          <b>${esc(t.title)}</b>
+          <span>飞书任务${t.due?` · ${over?'已逾期 · ':''}截止 ${todoDueText(t)}`:''}</span>
+        </span></label>${feishuTodoLink(t)}
+      </div>`;
+    }
     return `<div class="todo ${t.done ? "done" : ""} ${over ? "overdue" : ""}" data-id="${esc(t.id)}">
       <button class="cb" data-toggle="${esc(t.id)}"><svg><use href="#i-check"/></svg></button>
       <div class="tx">
@@ -1431,10 +1453,12 @@ function bindEdit() {
 
 /* ========== 待办 ========== */
 function bindTodo() {
-  $('#kk-todo-list').addEventListener('change',e=>{
-    const input=e.target.closest('[data-todo-toggle]');
-    if(input)toggleTodo(input.dataset.todoToggle);
-  });
+  for (const list of ['#kk-todo-list', '#td-list']) {
+    $(list).addEventListener('change', e => {
+      const input = e.target.closest('[data-todo-toggle]');
+      if (input) toggleTodo(input.dataset.todoToggle);
+    });
+  }
   $('#kk-todo-add').addEventListener('submit',e=>{
     e.preventDefault();const input=$('#kk-todo-title'),title=input.value.trim();
     if(!title)return;
@@ -1461,12 +1485,6 @@ function bindTodo() {
   });
   $("#td-title").addEventListener("keydown", e => { if (e.key === "Enter") $("#td-add").click(); });
   $("#td-hide").addEventListener("click", () => { hideDone = !hideDone; renderTodo(); });
-  $("#td-show-feishu").addEventListener("change", e => {
-    showFeishuTodos = e.currentTarget.checked;
-    try { localStorage.setItem(FEISHU_TODO_VIEW_KEY, String(showFeishuTodos)); } catch (e) {}
-    renderTodo();
-    renderMetrics();
-  });
 }
 
 /* ========== 报销编辑 ========== */
@@ -1552,7 +1570,8 @@ function bindData() {
   $("#exp-json").addEventListener("click", () => {
     download("工作台备份_" + key(new Date()) + ".json", JSON.stringify({
       settings: Object.assign({},settings(),{courseRoster:COURSES}), events: rawEvents().filter(e=>!e.manual), todos: rawTodos(),
-      fix: S.fix, added: S.added, extra: S.extra, money: S.money, overtime: S.overtime, routes: S.routes, feishu: S.feishu
+      fix: S.fix, added: S.added, extra: S.extra, money: S.money, overtime: S.overtime, routes: S.routes, feishu: S.feishu,
+      feishuTodoDone: S.feishuTodoDone
     }, null, 2));
     toast("备份已下载");
   });
@@ -1661,6 +1680,7 @@ function importText(text) {
   if (obj.feishu && Number.isFinite(Date.parse(obj.feishu.syncedAt))) S.feishu=obj.feishu;
   if (obj.settings) S.settings = Object.assign({}, obj.settings, { termStart: obj.settings.termStart || (RAW.settings || {}).termStart });
   if (obj.todos) S.todos = obj.todos;
+  if (obj.feishuTodoDone) S.feishuTodoDone = normalizeFeishuTodoDone(obj.feishuTodoDone);
   if (obj.fix) S.fix = obj.fix;
   if (obj.added) S.added = obj.added;
   if (obj.extra) S.extra = obj.extra;
@@ -1688,11 +1708,8 @@ const pushFiles=stateToFile;
 const CLOUD_KEY='kejian.feishu.passphrase.v1';
 let cloudBusy=false,cloudError='',taskError='';
 const feishuTodos=()=>S.feishuTasks?.items||[];
-const allTodos=()=>{
-  // Templates saved before the display preference default to showing Feishu tasks.
-  const visible=typeof showFeishuTodos==='undefined'||showFeishuTodos;
-  return rawTodos().concat(visible?feishuTodos():[]);
-};
+const allTodos = () => rawTodos().concat(feishuTodos().map(todo =>
+  S.feishuTodoDone?.[todo.id] ? { ...todo, done: true } : todo));
 const isFeishuTodo=t=>t.source==='feishu-task';
 const todoDeadline=t=>t.dueAt??(t.due?new Date(t.due+'T23:59:59').getTime():Infinity);
 const todoTime=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false});
