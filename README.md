@@ -17,6 +17,30 @@
 
 发布时会给页面中的样式、脚本加上构建版本号，首页也会刷新内嵌页面地址，减少手机缓存旧版的情况。
 
+## 飞书任务接入
+
+在线工作台读取飞书任务中心“我负责的”未完成任务。首页和“我的待办”会显示飞书来源及截止时间。点击“在飞书处理”即可打开原任务，飞书更新后的状态会随定时同步刷新。
+
+1. 在[飞书开放平台](https://open.feishu.cn/app)选择或创建企业自建应用。在权限管理中开通用户身份的 `task:task:read` 和 `offline_access`，在安全设置中添加重定向 URL `http://127.0.0.1:8765/feishu/callback`，将应用可用范围设为自己的账号并发布。若组织要求审批，先由管理员审批。
+2. 在项目目录用 PowerShell 7 运行以下命令。终端会询问 App ID，然后显示飞书授权链接。打开链接并完成飞书授权，终端会验证能否读取任务，并把授权写入 Git 忽略的目录。续授权时请使用一个新文件名。
+
+   ```powershell
+   New-Item -ItemType Directory -Path private-export -Force | Out-Null
+   $env:FEISHU_TASK_APP_SECRET = Read-Host '飞书 App Secret' -MaskInput
+   try { node tools/feishu-tasks.cjs authorize private-export/feishu-task-auth.private.json }
+   finally { Remove-Item Env:FEISHU_TASK_APP_SECRET }
+   ```
+
+3. 在[仓库 Secrets](https://github.com/zhangning521/zhangning521.github.io/settings/secrets/actions)添加 `FEISHU_TASK_AUTH`，值为授权文件的全部内容。有已登录正确账号的 GitHub CLI 时，也可通过标准输入保存。
+
+   ```powershell
+   Get-Content private-export/feishu-task-auth.private.json -Raw | gh secret set FEISHU_TASK_AUTH --repo zhangning521/zhangning521.github.io
+   ```
+
+4. 在 [GitHub Actions](https://github.com/zhangning521/zhangning521.github.io/actions/workflows/pages.yml)运行一次 `Sync Feishu and deploy Pages`，随后在网页点击“同步飞书”。在“日历与数据”可查看任务快照时间与未完成数量。
+
+任务快照用已有网页解密口令加密。运行任务使用独立密钥加密续期凭据，保存在 Actions 构件中。任务接口失败时，发布流程保留最后一次任务快照。如果授权续期中断且飞书刷新凭据已经失效，请再次授权并更新 `FEISHU_TASK_AUTH`。
+
 
 ## 本机数据与迁移
 
