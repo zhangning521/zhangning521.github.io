@@ -66,5 +66,27 @@ s=s.replace('overtime: S.overtime, routes: S.routes','overtime: S.overtime, rout
 s=s.replace('  if (obj.settings) S.settings', '  if (obj.feishu && Number.isFinite(Date.parse(obj.feishu.syncedAt))) S.feishu=obj.feishu;\n  if (obj.settings) S.settings')
 s=s.replace('    expenses: e.expenses','    feishu: e.feishu === true,\n    expenses: e.expenses')
 s=s.replace('    localStorage.removeItem(KEY);','    localStorage.removeItem(KEY); localStorage.removeItem(CLOUD_KEY); sessionStorage.removeItem(CLOUD_KEY);')
+
+# The online version combines the existing editable todos and a read-only Feishu list.
+def replace_once(before, after):
+    global s
+    if s.count(before) != 1:
+        raise ValueError('Expected exactly one workbench template match: ' + before[:100])
+    s = s.replace(before, after, 1)
+
+replace_once('const openTodos = rawTodos().filter(t => !t.done);', 'const openTodos = allTodos().filter(t => !t.done);')
+replace_once('openTodos.filter(t => t.due && new Date(t.due + "T23:59:59") < now)', 'openTodos.filter(t => todoDeadline(t) < now)')
+replace_once('const pending=rawTodos().filter(t=>!t.done).slice().sort((a,b)=>String(a.due||"9999").localeCompare(String(b.due||"9999")));',
+             'const pending=allTodos().filter(t=>!t.done).sort((a,b)=>todoDeadline(a)-todoDeadline(b));')
+replace_once("pending.length?'按截止时间排列 · 勾选即可完成'", "pending.length?'按截止时间排列'")
+replace_once("const overdue=t.due&&new Date(t.due+'T23:59:59')<now;", """const overdue=todoDeadline(t)<now;
+    if(isFeishuTodo(t))return `<div class="kk-todo-item kk-task-remote ${overdue?'overdue':''}"><span><strong>${esc(t.title)}</strong><small>飞书任务${t.due?` · <span class="kk-todo-due">${overdue?'已逾期 · ':''}截止 ${todoDueText(t)}</span>`:''}</small></span>${feishuTodoLink(t)}</div>`;""")
+replace_once('const list = rawTodos().slice();','const list = allTodos();')
+replace_once('String(a.due || "9999").localeCompare(String(b.due || "9999"))', 'todoDeadline(a)-todoDeadline(b)')
+replace_once('const over = !t.done && t.due && new Date(t.due + "T23:59:59") < now;',
+             '''const over = !t.done && todoDeadline(t) < now;
+    if(isFeishuTodo(t))return `<div class="todo kk-task-remote ${over?'overdue':''}"><div class="tx"><b>${esc(t.title)}</b><span>飞书任务${t.due?` · ${over?'已逾期 · ':''}截止 ${todoDueText(t)}`:''}</span></div>${feishuTodoLink(t)}</div>`;''')
+replace_once('</style>', '''.kk-task-remote{cursor:default;align-items:center}.kk-task-link{color:var(--accent);flex:none;font-size:11px;padding:8px 0;text-decoration:underline;text-underline-offset:3px}@media(max-width:760px){.kk-task-link{font-size:12px;display:inline-flex;min-height:44px;align-items:center}}
+</style>''')
 (root/'workbench.html').write_text(s,encoding='utf-8')
 print('Built workbench.html with encrypted cloud calendar updates, without embedded personal data or localhost calls.')

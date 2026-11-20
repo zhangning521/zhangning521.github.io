@@ -27,7 +27,7 @@
     const added=new Set((state.added||[]).map(e=>e.id));
     return Object.assign({},state,{events:keep.concat(data.events).filter(e=>!added.has(e.id)),feishu:{syncedAt:data.meta.syncedAt,count:data.events.length,rangeStart:data.meta.rangeStart,rangeEnd:data.meta.rangeEnd,calendars:data.meta.calendars}});
   }
-  async function decrypt(envelope,passphrase){
+  async function decryptPayload(envelope,passphrase){
     if(!envelope||envelope.version!==1||envelope.algorithm!=='AES-256-GCM'||envelope.iterations!==310000||typeof passphrase!=='string'||passphrase.length<16)throw Error('请输入至少 16 个字符的网页解密口令。');
     const salt=decode(envelope.salt),iv=decode(envelope.iv),body=decode(envelope.ciphertext);
     if(salt.length!==16||iv.length!==12||body.length<16||body.length>16*1024*1024)throw Error('加密日历格式无效。');
@@ -35,14 +35,43 @@
     const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:envelope.iterations},base,{name:'AES-GCM',length:256},false,['decrypt']);
     let text;
     try{text=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode('kejian.feishu.v1')},key,body);}catch(e){throw Error('口令不匹配或数据损坏，原课表未改动。');}
-    return snapshot(JSON.parse(new TextDecoder().decode(text)));
+    return JSON.parse(new TextDecoder().decode(text));
+  }
+  async function decrypt(envelope,passphrase){
+    return snapshot(await decryptPayload(envelope,passphrase));
+  }
+  async function fetchEnvelope(filename){
+    let response;
+    try{response=await fetch('./calendar/'+filename+'?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(20000)});}catch(e){throw Error('暂时无法读取飞书同步数据，请稍后重试。');}
+    if(response.status===404)return null;
+    if(!response.ok)throw Error('读取飞书同步数据失败（'+response.status+'）。');
+    return response.json();
   }
   async function fetchSnapshot(passphrase){
-    let response;
-    try{response=await fetch('./calendar/feishu.enc.json?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(20000)});}catch(e){throw Error('暂时无法读取线上日历，请稍后重试。原课表已保留。');}
-    if(response.status===404)throw Error('尚未生成云端日历：请先配置仓库 Secrets，再运行 Sync Feishu and deploy Pages。');
-    if(!response.ok)throw Error('读取线上日历失败（'+response.status+'），原课表已保留。');
-    return decrypt(await response.json(),passphrase);
+    const envelope=await fetchEnvelope('feishu.enc.json');
+    if(!envelope)throw Error('尚未生成云端日历：请先配置仓库 Secrets，再运行 Sync Feishu and deploy Pages。');
+    return decrypt(envelope,passphrase);
   }
-  root.KejianCalendar={snapshot,merge,decrypt,fetchSnapshot};
+  function taskSnapshot(value){
+    const data=value?.taskSync;
+    if(!Number.isFinite(Date.parse(data?.syncedAt))||!Array.isArray(data.items)||data.items.length>5000){
+      throw Error('飞书任务快照格式无效。');
+    }
+    const ids=new Set();
+    const items=data.items.map(task=>{
+      if(!task||!/^[a-f0-9-]{36}$/.test(task.guid)||ids.has(task.guid)||typeof task.title!=='string'||
+        typeof task.due!=='string'||(task.due&&!/^\d{4}-\d{2}-\d{2}$/.test(task.due))||
+        (task.dueAt!==null&&(!Number.isFinite(task.dueAt)||Math.abs(task.dueAt)>8640000000000000))){
+        throw Error('飞书任务数据不完整。');
+      }
+      ids.add(task.guid);
+      return {id:'feishu-task:'+task.guid,guid:task.guid,title:task.title,due:task.due,dueAt:task.dueAt,done:false,source:'feishu-task'};
+    });
+    return {syncedAt:data.syncedAt,items};
+  }
+  async function fetchTasks(passphrase){
+    const envelope=await fetchEnvelope('feishu-tasks.enc.json');
+    return envelope?taskSnapshot(await decryptPayload(envelope,passphrase)):null;
+  }
+  root.KejianCalendar={snapshot,merge,decrypt,fetchSnapshot,fetchTasks,taskSnapshot};
 })(typeof window==='undefined'?globalThis:window);

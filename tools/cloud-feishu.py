@@ -68,9 +68,9 @@ def collect(username, password):
                      'calendars': [c['name'] for c in calendars], 'count': len(events)}, 'events': events}
 
 
-def retain_published():
+def retain_published(filename='feishu.enc.json'):
     """Keep the previous ciphertext during site edits before Secrets are configured."""
-    url = 'https://zhangning521.github.io/calendar/feishu.enc.json'
+    url = f'https://zhangning521.github.io/calendar/{filename}?retain={int(time.time())}'
     try:
         with urllib.request.urlopen(url, timeout=25) as response:
             raw = response.read(24 * 1024 * 1024 + 1)
@@ -79,10 +79,10 @@ def retain_published():
             raise ValueError('Invalid previously published ciphertext')
     except urllib.error.HTTPError as error:
         if error.code == 404:
-            print('No previous cloud snapshot. Configure the three repository Secrets to enable synchronization.')
+            print('No previous cloud snapshot.')
             return
         raise
-    target = Path('_site/calendar/feishu.enc.json')
+    target = Path('_site/calendar') / filename
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(raw)
 
@@ -91,6 +91,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output')
     parser.add_argument('--retain-published', action='store_true')
+    parser.add_argument('--retain-published-tasks', action='store_true')
     args = parser.parse_args()
     os.environ['TZ'] = 'Asia/Shanghai'
     if hasattr(time, 'tzset'):
@@ -98,6 +99,9 @@ def main():
     try:
         if args.retain_published:
             retain_published()
+            return 0
+        if args.retain_published_tasks:
+            retain_published('feishu-tasks.enc.json')
             return 0
         username, password, phrase = (os.environ.get(k, '') for k in ('FEISHU_CALDAV_USERNAME', 'FEISHU_CALDAV_PASSWORD', 'CALENDAR_PASSPHRASE'))
         if not username or not password or len(phrase) < 16 or not args.output:

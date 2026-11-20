@@ -6,6 +6,7 @@ on:
   schedule:
     - cron: '7,22,37,52 * * * *'
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -14,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     environment:
@@ -45,6 +47,54 @@ jobs:
             python tools/cloud-feishu.py --output "$RUNNER_TEMP/calendar.private.json"
             node tools/encrypt-calendar.cjs "$RUNNER_TEMP/calendar.private.json" _site/calendar/feishu.enc.json
           fi
+      - name: Load Feishu task authorization
+        id: task_auth
+        continue-on-error: true
+        env:
+          FEISHU_TASK_AUTH: ${{ secrets.FEISHU_TASK_AUTH }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          if [ -z "$FEISHU_TASK_AUTH" ]; then exit 0; fi
+          echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          name=$(node tools/feishu-tasks.cjs name)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          previous=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/artifacts" -f name="$name" -f per_page=100 | jq -r --argjson repo "$REPOSITORY_ID" '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main" and .workflow_run.head_repository_id == $repo)] | max_by(.id) | .workflow_run.id // empty')
+          if [ -n "$previous" ]; then
+            gh run download "$previous" --name "$name" --dir "$RUNNER_TEMP/feishu-task-auth"
+          fi
+          node tools/feishu-tasks.cjs refresh "$RUNNER_TEMP/feishu-task-auth" "$RUNNER_TEMP/feishu-task-rotated"
+      - name: Save rotated Feishu task authorization
+        id: task_auth_save
+        if: steps.task_auth.outcome == 'success' && steps.task_auth.outputs.name != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.task_auth.outputs.name }}
+          path: ${{ runner.temp }}/feishu-task-rotated/authorization.enc.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Read and encrypt Feishu tasks
+        id: tasks
+        if: steps.task_auth.outcome == 'success' && steps.task_auth_save.outcome == 'success'
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          FEISHU_TASK_AUTH: ${{ secrets.FEISHU_TASK_AUTH }}
+          CALENDAR_PASSPHRASE: ${{ secrets.CALENDAR_PASSPHRASE }}
+        run: |
+          state="$RUNNER_TEMP/feishu-task-auth"
+          if [ -f "$RUNNER_TEMP/feishu-task-rotated/authorization.enc.json" ]; then
+            state="$RUNNER_TEMP/feishu-task-rotated"
+          fi
+          mkdir -p _site/calendar
+          node tools/feishu-tasks.cjs snapshot "$state" "$RUNNER_TEMP/feishu-tasks.enc.json"
+          mv "$RUNNER_TEMP/feishu-tasks.enc.json" _site/calendar/feishu-tasks.enc.json
+      - name: Retain last Feishu task snapshot
+        if: steps.task_auth.outputs.enabled == 'true' && steps.tasks.outcome != 'success'
+        run: |
+          echo '::warning::飞书任务同步失败，保留上次快照，继续发布日历。'
+          python tools/cloud-feishu.py --retain-published-tasks
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

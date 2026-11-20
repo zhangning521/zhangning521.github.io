@@ -1,5 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const {encrypt}=require('./encrypt-calendar.cjs');
+const {collectTasks,normalizeTask,sealToken,openToken}=require('./feishu-tasks.cjs');
 const context={crypto:crypto.webcrypto,TextEncoder,TextDecoder,atob,AbortSignal};vm.createContext(context);
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../calendar-sync.js'),'utf8'),context);
 const api=context.KejianCalendar;
@@ -20,5 +21,50 @@ assert.throws(()=>api.merge(state,{...data,events:[{...data.events[0],start:'inv
  const bytes=Buffer.from(envelope.ciphertext,'base64');bytes[0]^=1;
  await assert.rejects(()=>api.decrypt({...envelope,ciphertext:bytes.toString('base64')},phrase));
  assert.throws(()=>encrypt(data,'short'));
+ const guid='e297ddff-06ca-4166-b917-4ce57cd3a7a0';
+ const remoteTask={guid,summary:'仅用于测试的飞书任务',completed_at:'0',due:{timestamp:String(Date.parse('2026-11-20T17:30:00Z')),is_all_day:false}};
+ let calls=0;
+ const mockFetch=async url=>{
+   assert.equal(url.searchParams.get('completed'),'false');
+   assert.equal(url.searchParams.get('type'),'my_tasks');
+   assert.equal(url.searchParams.get('page_token'),calls?'next':null);
+   const data=calls++?{items:[remoteTask,{...remoteTask,completed_at:'100'}],has_more:false}:{items:[remoteTask],has_more:true,page_token:'next'};
+   return {ok:true,json:async()=>({code:0,data})};
+ };
+ const tasks=await collectTasks('test-token',mockFetch);
+ assert.equal(calls,2);
+ assert.equal(tasks.length,1);
+ assert.equal(tasks[0].due,'2026-11-21');
+ assert.equal(normalizeTask({...remoteTask,due:{timestamp:String(Date.parse('2026-11-20T00:00:00Z')),is_all_day:true}}).due,'2026-11-20');
+ await assert.rejects(()=>collectTasks('test-token',async()=>({ok:true,json:async()=>({code:0,data:{items:[],has_more:true}})})),/分页/);
+ const taskPayload={taskSync:{syncedAt:'2026-11-20T18:00:00+08:00',items:tasks}};
+ const taskEnvelope=encrypt(taskPayload,phrase);
+ assert.ok(!JSON.stringify(taskEnvelope).includes(remoteTask.summary));
+ context.fetch=async()=>({ok:true,json:async()=>taskEnvelope});
+ const taskResult=await api.fetchTasks(phrase);
+ assert.equal(taskResult.items[0].id,'feishu-task:'+guid);
+ assert.equal(taskResult.items[0].dueAt,Date.parse('2026-11-20T17:30:00Z'));
+ assert.throws(()=>api.taskSnapshot({taskSync:{...taskPayload.taskSync,items:tasks.concat(tasks)}}));
+ const token={accessToken:'test-access',refreshToken:'test-refresh',expiresAt:123};
+ const auth={stateKey:'a'.repeat(64)};
+ const sealed=sealToken(token,auth);
+ assert.deepEqual(openToken(sealed,auth),token);
+ assert.throws(()=>openToken(sealed,{stateKey:'b'.repeat(64)}));
+ const nodes=new Map([['#dlg',{open:false}],['#sync-text',{}],['#kk-sync',{}]]);
+ const browserState={S:{todos:[{id:'local',title:'本地待办'}]},window:{KejianCalendar:{
+   fetchSnapshot:async()=>data,merge:api.merge,fetchTasks:async()=>taskResult,
+ }},$:(selector)=>nodes.get(selector),localStorage:{getItem:()=>phrase},sessionStorage:{setItem(){}},
+ save(){},invalidate(){},render(){},renderHead(){}};
+ vm.createContext(browserState);
+ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'workbench-cloud.js'),'utf8')+'\nthis.sync=autoSync;this.todos=allTodos;',browserState);
+ vm.runInContext('function rawTodos(){return S.todos;}',browserState);
+ await browserState.sync(false);
+ assert.deepEqual(Array.from(browserState.todos(),t=>t.id),['local','feishu-task:'+guid]);
+ browserState.window.KejianCalendar.fetchTasks=async()=>{throw Error('interrupted');};
+ await browserState.sync(false);
+ assert.equal(browserState.todos().length,2,'a temporary task sync failure retains the last list');
+ browserState.window.KejianCalendar.fetchTasks=async()=>({syncedAt:'2026-11-21T00:00:00Z',items:[]});
+ await browserState.sync(false);
+ assert.deepEqual(Array.from(browserState.todos(),t=>t.id),['local'],'a successful empty snapshot clears only Feishu tasks');
  console.log('PASS: Node encryption / browser WebCrypto decryption, wrong key and tampering rejection, deletions, history and local edits preserved.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
