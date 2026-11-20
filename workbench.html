@@ -295,6 +295,11 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 .kk-todo-filter{color:var(--ink-2);min-height:30px;padding-inline:6px}
 .kk-todo-filter input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
 @media(max-width:760px){.kk-todo-filter{min-height:44px;font-size:12px}}
+.kk-timeline.is-ended{display:flex;align-items:center;gap:9px;min-height:32px;padding:4px 0 4px 18px;grid-column:1/-1}
+.kk-timeline.is-ended:before{top:50%;transform:translateY(-50%);background:#b2c2b7;box-shadow:0 0 0 1px #b2c2b7}
+.kk-timeline.is-ended time{flex:none;margin:0;white-space:nowrap}
+.kk-timeline.is-ended strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.kk-timeline.is-ended{min-height:40px}.kk-timeline.is-ended strong{font-size:13px}}
 </style>
 </head>
 <body>
@@ -1163,6 +1168,7 @@ let kkWeek = sow(new Date());
 let kkCourseWeek = sow(new Date());
 let kkAgendaWeek = sow(new Date());
 let kkDayOffset = 0;
+let kkDayUpdateTimer;
 const kkViews = {
   overview:['工作台','把时间，留给教学。','看清每一节课，安排每一段路，也不漏掉每一笔报销。'],
   courses:['我的课表','每一节课，都心中有数。','点击课程可修正标题、分类与时间，或隐藏已取消的课。'],
@@ -1194,14 +1200,36 @@ function kkSetView(view) {
   if(previousView!==view&&window.matchMedia?.('(max-width:760px)').matches)window.scrollTo(0,0);
 }
 function kkRenderDay() {
-  const now=new Date(),date=addDays(d0(now),kkDayOffset);
-  const title=kkDayOffset===0?'今日安排':kkDayOffset===1?'明日安排':kkDayOffset===-1?'昨日安排':`${date.getMonth()+1}月${date.getDate()}日安排`;
-  $('#kk-day-heading').textContent=title;
-  $('#kk-today-label').textContent=`${date.getFullYear()} 年 ${date.getMonth()+1} 月 ${date.getDate()} 日 · ${WD[(date.getDay()+6)%7]}`;
-  $('[data-day="today"]').disabled=kkDayOffset===0;
-  const dayItems=instances().filter(i=>i.start<addDays(date,1)&&i.end>date);
-  const empty=kkDayOffset===0?'今天':kkDayOffset===1?'明天':kkDayOffset===-1?'昨天':'这一天';
-  $('#kk-today').innerHTML=dayItems.length?dayItems.map(i=>`<button class="kk-timeline" data-kk-edit="${esc(i.sid)}"><time>${hm(i.start)}–${hm(i.end)}${kkDayOffset===0?(i.end<=now?' · 已结束':i.start<=now?' · 进行中':''):''}</time><strong>${esc(i.patch.title||i.ev.title||'未命名安排')}</strong><small>${esc(locationOf(i)||(courseOf(i)?.mode==='online'?'线上授课':'未填写地点'))}</small></button>`).join(''):`<div class="kk-empty">${kkSvg('sun')}<strong>${empty}暂时没有安排</strong>留一点时间备课，也留一点给自己。</div>`;
+  const now = new Date(), today = d0(now), date = addDays(today, kkDayOffset);
+  const isToday = kkDayOffset === 0;
+  const heading = isToday ? '今日安排' : kkDayOffset === 1 ? '明日安排' : kkDayOffset === -1 ? '昨日安排' : `${date.getMonth()+1}月${date.getDate()}日安排`;
+  $('#kk-day-heading').textContent = heading;
+  $('#kk-today-label').textContent = `${date.getFullYear()} 年 ${date.getMonth()+1} 月 ${date.getDate()} 日 · ${WD[(date.getDay()+6)%7]}`;
+  $('[data-day="today"]').disabled = isToday;
+  const dateEnd = addDays(date, 1);
+  const dayItems = instances().filter(i => i.start < dateEnd && i.end > date);
+  const empty = isToday ? '今天' : kkDayOffset === 1 ? '明天' : kkDayOffset === -1 ? '昨天' : '这一天';
+  $('#kk-today').innerHTML = dayItems.length ? dayItems.map(i => {
+    const time = `${hm(i.start)}–${hm(i.end)}`;
+    const title = esc(i.patch.title || i.ev.title || '未命名安排');
+    const id = esc(i.sid);
+    if (isToday && i.end <= now) {
+      return `<button type="button" class="kk-timeline is-ended" data-kk-edit="${id}" title="${time} · ${title} · 已结束"><time>${time}</time><strong>${title}</strong></button>`;
+    }
+    const status = isToday && i.start <= now ? ' · 进行中' : '';
+    const venue = esc(locationOf(i) || (courseOf(i)?.mode === 'online' ? '线上授课' : '未填写地点'));
+    return `<button type="button" class="kk-timeline" data-kk-edit="${id}"><time>${time}${status}</time><strong>${title}</strong><small>${venue}</small></button>`;
+  }).join('') : `<div class="kk-empty">${kkSvg('sun')}<strong>${empty}暂时没有安排</strong>留一点时间备课，也留一点给自己。</div>`;
+
+  let nextUpdate = +addDays(today, 1);
+  if (isToday) {
+    for (const { start, end } of dayItems) {
+      if (start > now) nextUpdate = Math.min(nextUpdate, +start);
+      if (end > now) nextUpdate = Math.min(nextUpdate, +end);
+    }
+  }
+  clearTimeout(kkDayUpdateTimer);
+  kkDayUpdateTimer = setTimeout(kkRenderDay, Math.max(1, nextUpdate - Date.now()));
 }
 function kkRenderDashboard() {
   const now = new Date(), all = instances();
@@ -1221,6 +1249,9 @@ function kkRenderDashboard() {
   kkLabelTable($('#kk-expenses-preview table')); 
 }
 function kkBind() {
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) kkRenderDay();
+  });
   document.addEventListener('click',e=>{
     const calendarMode=e.target.closest('[data-calendar-mode]'),calendarDay=e.target.closest('[data-calendar-day]');
     if(calendarMode||calendarDay){
