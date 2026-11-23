@@ -1,25 +1,47 @@
 (function(root){
   'use strict';
 
+  function rememberDirectory(handle){
+    return new Promise((resolve,reject)=>{
+      if(!root.indexedDB){resolve(null);return;}
+      const open=root.indexedDB.open('kejian-workbench-oil-folder',1);
+      open.onupgradeneeded=()=>open.result.createObjectStore('directories');
+      open.onerror=()=>reject(open.error);
+      open.onsuccess=()=>{
+        const db=open.result;
+        const tx=db.transaction('directories',handle?'readwrite':'readonly');
+        const store=tx.objectStore('directories');
+        const operation=handle?store.put(handle,'root'):store.get('root');
+        tx.oncomplete=()=>{db.close();resolve(operation.result||null);};
+        tx.onabort=()=>{db.close();reject(tx.error);};
+      };
+    });
+  }
+
   function mount(panel, app){
     const model=root.WorkbenchInvoiceStore;
     const find=selector=>panel.querySelector(selector);
     const list=find('#kk-invoices-list'), summary=find('#kk-invoices-summary');
-    const category=find('#kk-invoices-category'), status=find('#kk-invoices-status');
+    const status=find('#kk-invoices-status');
     const search=find('#kk-invoices-search'), sort=find('#kk-invoices-sort');
     const editor=find('#kk-invoice-editor'), form=find('#kk-invoice-form');
     const preview=find('#kk-invoice-preview'), previewBody=find('#kk-invoice-preview-body');
-    const fileInput=find('#kk-invoices-files'), folderInput=find('#kk-invoices-folder');
-    const folderButton=find('#kk-invoices-folder-button');
+    const folderButton=find('#kk-invoices-folder-button'), refresh=find('#kk-invoices-refresh');
+    const localLink=find('#kk-invoices-local-link');
+    const canPick=typeof root.showDirectoryPicker==='function';
+    if(app.localFolderFallback){
+      localLink.href=app.localFolderFallback;
+      localLink.hidden=false;
+    }
+    folderButton.disabled=!canPick;
     const text=app.escape;
     const compare=(a,b)=>String(a||'').localeCompare(String(b||''),'zh-CN',{numeric:true});
-    let database=null, loading=null, busy=false, records=[], previewUrl='', previewRequest=0;
+    let directory=null, database=null, loading=null, busy=false, records=[], previewUrl='', previewRequest=0;
     let editingId='';
 
     function current(){
       const query=search.value.trim().toLowerCase();
-      return records.filter(r=>(category.value==='all'||r.cat===category.value)&&
-        (status.value==='all'||r.status===status.value)&&
+      return records.filter(r=>(status.value==='all'||r.status===status.value)&&
         (!query||[r.name,r.merchant,r.note,r.date,r.usedNote,r.usedDate].some(value=>String(value||'').toLowerCase().includes(query))))
         .sort((a,b)=>{
           if(sort.value==='amount')return (b.amount??-1)-(a.amount??-1)||compare(a.name,b.name);
@@ -28,7 +50,6 @@
         });
     }
 
-    const label=r=>model.categories[r.cat]||'其他发票';
     const statusLabel=r=>r.status==='used'?'已使用':'未使用';
 
     function render(){
@@ -39,7 +60,7 @@
       summary.textContent=`未使用 ${unused.length} 张 · ${app.money(total)}${missing?` · ${missing} 张金额待填`:''} · 已使用 ${records.length-unused.length} 张`;
       const rows=current();
       list.innerHTML=rows.length?rows.map(r=>`<tr>
-        <td class="kk-invoice-name">${text(r.name)}</td><td>${text(label(r))}</td>
+        <td class="kk-invoice-name" title="${text(r.relativePath||r.name)}">${text(r.name)}</td>
         <td>${text(r.merchant||'—')}</td><td class="num">${text(r.date||'—')}</td>
         <td class="num">${r.amount===null?'—':app.money(r.amount)}</td>
         <td><span class="kk-invoice-status ${r.status==='used'?'used':''}">${statusLabel(r)}</span>${r.usedDate?`<small class="kk-invoice-use-date">${text(r.usedDate)}</small>`:''}</td>
@@ -48,7 +69,8 @@
           ${r.hasFile?`<button type="button" class="btn sm" data-invoice-action="preview" data-id="${text(r.id)}">预览</button>`:''}
           <button type="button" class="btn sm" data-invoice-action="edit" data-id="${text(r.id)}">编辑</button>
           <button type="button" class="btn sm" data-invoice-action="toggle" data-id="${text(r.id)}">${r.status==='used'?'恢复未使用':'标记已使用'}</button>
-        </div></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty">${records.length?'当前筛选下没有发票。':'还没有发票，可以添加文件或导入旧发票文件夹。'}</div></td></tr>`;
+        </div></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty">${records.length?'当前筛选下没有油票。':'这两个目录里还没有油票。'}</div></td></tr>`;
+      refresh.disabled=false;
       app.labelTable(find('#kk-invoices-table'));
       find('#kk-invoice-filenames').innerHTML=[...new Set(records.map(r=>r.name))]
         .sort(compare).map(name=>`<option value="${text(name)}"></option>`).join('');
@@ -59,66 +81,96 @@
       render();
     }
 
+    async function attach(handle){
+      const store=await model.connect(handle);
+      const invoices=await store.list();
+      directory=handle;
+      database=store;
+      records=invoices;
+      render();
+    }
+
     function load(){
       if(!model){
-        summary.textContent='发票管家加载失败，请刷新页面。';
+        summary.textContent='油票管理加载失败，请刷新页面。';
+        return Promise.resolve();
+      }
+      if(!canPick){
+        summary.textContent='请用电脑上的 Edge 或 Chrome 打开工作台，以连接油票文件夹。';
         return Promise.resolve();
       }
       if(!loading){
         loading=(async()=>{
-          database=await model.open();
-          await reload();
-        })().catch(()=>{
-          summary.textContent='无法打开浏览器发票台账。请在允许网站保存数据的浏览器窗口中使用。';
-          database=null;
-          loading=null;
-        });
+          try{
+            const saved=await rememberDirectory();
+            if(busy||database)return;
+            directory=saved;
+            if(directory&&await directory.queryPermission({mode:'readwrite'})==='granted'){
+              await attach(directory);
+              return;
+            }
+          }catch{
+            directory=null;
+          }
+          if(!database)summary.textContent='请连接原「发票」文件夹';
+        })();
       }
       return loading;
     }
 
+    function errorText(error){
+      if(error?.name==='SecurityError')return '当前页面无法打开目录。请在电脑 Edge 或 Chrome 的独立标签页打开工作台。';
+      if(error?.name==='NotAllowedError')return '请重新连接「发票」文件夹，并允许浏览器读写。';
+      return error?.message||'油票操作失败，请重试。';
+    }
+
+    function showError(message){
+      summary.textContent=message;
+      app.toast(message);
+    }
+
     async function mutate(operation){
-      if(busy)return;
+      if(busy||!database)return;
       busy=true;
       panel.setAttribute('aria-busy','true');
-      try {
-        await load();
-        if(!database){app.toast('无法打开浏览器发票台账');return;}
-        await operation();
-      } catch(error){
-        app.toast(error?.message||'发票操作失败，请重试');
-      } finally {
+      try{ await operation(); }
+      catch(error){
+        try{ await reload(); }catch{}
+        showError(errorText(error));
+      }
+      finally{
         busy=false;
         panel.removeAttribute('aria-busy');
       }
     }
 
-    function importFiles(files){
-      if(!files.length)return;
-      void mutate(async()=>{
-        const result=await database.importFiles(files,category.value==='all'?'other':category.value);
-        const changed=result.added+result.updated;
-        if(changed){
-          status.value='all';
-          category.value='all';
-          search.value='';
-          await reload();
-        }
-        app.toast(`新增 ${result.added} 张，补充 ${result.updated} 张${result.skipped?`，跳过 ${result.skipped} 个文件`:''}`);
-      });
-    }
+    folderButton.addEventListener('click',async()=>{
+      if(!canPick||busy||!model)return;
+      busy=true;
+      panel.setAttribute('aria-busy','true');
+      try{
+        const options={id:'workbench-oil-invoices',mode:'readwrite'};
+        if(directory)options.startIn=directory;
+        const selected=await root.showDirectoryPicker(options);
+        await attach(selected);
+        try{ await rememberDirectory(selected); }catch{}
+      }catch(error){
+        if(error?.name!=='AbortError')showError(errorText(error));
+      }finally{
+        busy=false;
+        panel.removeAttribute('aria-busy');
+      }
+    });
+    refresh.addEventListener('click',()=>void mutate(reload));
 
     function showEditor(record){
       editingId=record.id;
       find('#kk-invoice-edit-name').textContent=record.name;
-      form.elements.category.value=record.cat;
       form.elements.merchant.value=record.merchant;
       form.elements.date.value=record.date;
       form.elements.amount.value=record.amount??'';
       form.elements.note.value=record.note;
       form.elements.usedNote.value=record.usedNote;
-      form.elements.attachment.value='';
-      find('#kk-invoice-replace-label').textContent=record.hasFile?'替换附件（可选）':'补充附件（可选）';
       editor.showModal();
     }
 
@@ -135,7 +187,7 @@
       try{
         const file=await database.file(record.id);
         if(request!==previewRequest)return;
-        if(!file){app.toast('这条发票缺少附件，可在编辑中补充');return;}
+        if(!file){app.toast('油票原文件已不在目录里，请刷新列表');return;}
         const extension=String(file.name||record.name).split('.').pop().toLowerCase();
         const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',heic:'image/heic',heif:'image/heif',avif:'image/avif'};
         const storedType=Object.entries(types).find(([,type])=>type===file.type);
@@ -163,7 +215,7 @@
           previewBody.textContent='当前浏览器无法预览此文件，可以下载打开。';
         }
         if(!preview.open)preview.showModal();
-      }catch(error){app.toast('预览失败，可以重新导入或补充该附件');}
+      }catch(error){app.toast('预览失败，请刷新列表或检查原文件');}
     }
 
     function safeCell(value){
@@ -171,38 +223,14 @@
       return value;
     }
 
-    for(const option of [category,sort,status])option.addEventListener('change',render);
+    for(const option of [sort,status])option.addEventListener('change',render);
     search.addEventListener('input',render);
-    find('#kk-invoices-add').addEventListener('click',()=>{if(!busy)fileInput.click();});
-    folderButton.hidden=!('webkitdirectory' in folderInput);
-    folderButton.addEventListener('click',()=>{if(!busy)folderInput.click();});
-    for(const input of [fileInput,folderInput]){
-      input.addEventListener('change',()=>{
-        const files=Array.from(input.files||[]);
-        input.value='';
-        importFiles(files);
-      });
-    }
-    panel.addEventListener('dragover',event=>{
-      if(!event.dataTransfer?.types.includes('Files'))return;
-      event.preventDefault();
-      panel.classList.add('drag-target');
-    });
-    panel.addEventListener('dragleave',event=>{
-      if(!panel.contains(event.relatedTarget))panel.classList.remove('drag-target');
-    });
-    panel.addEventListener('drop',event=>{
-      if(!event.dataTransfer?.types.includes('Files'))return;
-      event.preventDefault();
-      panel.classList.remove('drag-target');
-      importFiles(Array.from(event.dataTransfer.files));
-    });
     find('#kk-invoices-export').addEventListener('click',()=>{
       const rows=current();
       if(!rows.length){app.toast('当前没有可导出的发票');return;}
-      const data=[['类别','文件名','商户','开票日期','金额','备注','状态','使用日期','用途'],
-        ...rows.map(r=>[label(r),r.name,r.merchant,r.date,r.amount===null?'':r.amount.toFixed(2),r.note,statusLabel(r),r.usedDate,r.usedNote].map(safeCell))];
-      app.download(`发票台账_${app.today()}.csv`,'\ufeff'+app.csv(data),'text/csv;charset=utf-8');
+      const data=[['文件名','商户','开票日期','金额','备注','状态','使用日期','用途','所在目录'],
+        ...rows.map(r=>[r.name,r.merchant,r.date,r.amount===null?'':r.amount.toFixed(2),r.note,statusLabel(r),r.usedDate,r.usedNote,r.relativePath].map(safeCell))];
+      app.download(`油票台账_${app.today()}.csv`,'\ufeff'+app.csv(data),'text/csv;charset=utf-8');
       app.toast('发票 CSV 已导出');
     });
     list.addEventListener('click',event=>{
@@ -215,9 +243,10 @@
       if(button.dataset.invoiceAction==='toggle'){
         const used=record.status!=='used';
         void mutate(async()=>{
-          await database.save({...record,status:used?'used':'unused',usedDate:used?app.today():''});
+          const moved=await database.move(record.id,used,used?app.today():'');
           await reload();
-          app.toast(used?'发票已标记为已使用':'发票已恢复为未使用');
+          const destination=used?'03已使用 / 油票':'02油票';
+          app.toast('已移到 '+destination+(moved?.name&&moved.name!==record.name?'，文件名为 '+moved.name:''));
         });
       }
     });
@@ -230,25 +259,14 @@
       const amountText=String(values.get('amount')).trim();
       const amount=amountText===''?null:Number(amountText);
       if(amount!==null&&(!Number.isFinite(amount)||amount<0)){app.toast('请填写有效的发票金额');return;}
-      const extra=form.elements.attachment.files[0];
       void mutate(async()=>{
-        const updated={...record,cat:values.get('category'),date:values.get('date'),
+        const updated={...record,date:values.get('date'),
           merchant:String(values.get('merchant')).trim(),amount,note:String(values.get('note')).trim(),
           usedNote:String(values.get('usedNote')).trim()};
-        await database.save(updated,extra);
+        await database.save(updated);
         await reload();
         editor.close();
         app.toast('发票信息已保存');
-      });
-    });
-    find('#kk-invoice-remove').addEventListener('click',()=>{
-      const record=records.find(row=>row.id===editingId);
-      if(!record||busy||!root.confirm('从工作台移除这张发票和附件副本？原文件仍保留在原来的文件夹。'))return;
-      void mutate(async()=>{
-        await database.remove(record.id);
-        await reload();
-        editor.close();
-        app.toast('发票已移除');
       });
     });
     find('#kk-invoice-editor-close').addEventListener('click',()=>editor.close());

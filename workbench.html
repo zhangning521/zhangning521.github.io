@@ -311,8 +311,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 .kk-invoice-status.used{background:var(--surface-2);color:var(--ink-2)}
 .kk-invoice-use-date{display:block;margin-top:4px;color:var(--muted)}
 .kk-invoice-foot{padding:12px 21px;margin:0;border-top:1px solid var(--line-2);color:var(--muted);font-size:11px;line-height:1.65}
-.kk-invoices.drag-target{outline:2px solid var(--accent);outline-offset:-2px}
-.kk-invoice-edit-actions{display:flex;justify-content:space-between;gap:12px;margin-top:16px}
+.kk-invoice-edit-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:16px}
 .kk-invoice-file-title{color:var(--ink-2);margin:0 0 12px}
 #kk-invoice-preview{width:min(820px,calc(100% - 20px))}
 #kk-invoice-preview-name{overflow-wrap:anywhere}
@@ -322,7 +321,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 @media(max-width:760px){
  .kk-invoices .card-h .kk-invoice-tools{margin-left:0;flex-basis:100%;order:2}
  .kk-invoice-filters input[type="search"]{flex-basis:100%;min-height:44px;font-size:16px}
- #kk-invoices-table td[data-label="发票文件"],#kk-invoices-table td[data-label="备注 / 用途"],#kk-invoices-table td[data-label="操作"]{grid-column:1/-1}
+ #kk-invoices-table td[data-label="油票文件"],#kk-invoices-table td[data-label="备注 / 用途"],#kk-invoices-table td[data-label="操作"]{grid-column:1/-1}
  #kk-invoices-table td[data-label="操作"]:before{display:none}
  #kk-invoices-table td{min-width:0}
 }
@@ -395,38 +394,34 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 
   <section class="card kk-invoices" id="kk-invoice-manager" data-page="expenses" aria-labelledby="kk-invoices-title" hidden>
     <div class="card-h">
-      <div class="kk-invoice-heading"><h3 id="kk-invoices-title">发票管家</h3><p class="hint" id="kk-invoices-summary" role="status">正在读取发票台账…</p></div>
+      <div class="kk-invoice-heading"><h3 id="kk-invoices-title">油票管理</h3><p class="hint" id="kk-invoices-summary" role="status">请连接原「发票」文件夹</p></div>
       <div class="right kk-invoice-tools">
-        <button type="button" class="btn sm" id="kk-invoices-folder-button">导入发票文件夹</button>
+        <button type="button" class="btn sm" id="kk-invoices-refresh" disabled>刷新列表</button>
         <button type="button" class="btn sm" id="kk-invoices-export">导出当前 CSV</button>
-        <button type="button" class="btn primary sm" id="kk-invoices-add">添加发票</button>
+        <button type="button" class="btn primary sm" id="kk-invoices-folder-button">连接发票文件夹</button>
       </div>
     </div>
     <div class="kk-filter-bar kk-invoice-filters">
-      <input type="search" id="kk-invoices-search" placeholder="搜索文件名、商户或备注" aria-label="搜索发票">
+      <input type="search" id="kk-invoices-search" placeholder="搜索文件名、商户或备注" aria-label="搜索油票">
       <label>状态 <select id="kk-invoices-status"><option value="unused">未使用</option><option value="used">已使用</option><option value="all">全部</option></select></label>
-      <label>类别 <select id="kk-invoices-category"><option value="all">全部</option><option value="hwy">高速通行</option><option value="oil">油票</option><option value="mileage">里程图</option><option value="other">其他发票</option></select></label>
       <label>排序 <select id="kk-invoices-sort"><option value="date">日期最新</option><option value="amount">金额最高</option><option value="name">文件名</option></select></label>
     </div>
     <div class="tbl-wrap"><table class="tbl" id="kk-invoices-table">
-      <thead><tr><th>发票文件</th><th>类别</th><th>商户</th><th>开票日期</th><th>金额</th><th>状态</th><th>备注 / 用途</th><th>操作</th></tr></thead>
+      <thead><tr><th>油票文件</th><th>商户</th><th>开票日期</th><th>金额</th><th>状态</th><th>备注 / 用途</th><th>操作</th></tr></thead>
       <tbody id="kk-invoices-list"></tbody>
     </table></div>
-    <p class="kk-invoice-foot">支持 PDF、图片和旧台账 JSON。文件和台账保存在当前浏览器，使用状态可随时恢复。</p>
-    <input type="file" id="kk-invoices-files" accept="application/pdf,image/*,.pdf,.heic,.heif,.json" multiple hidden>
-    <input type="file" id="kk-invoices-folder" webkitdirectory multiple hidden>
+    <p class="kk-invoice-foot">连接「发票」文件夹后，只读取「02油票」和「03已使用 / 油票」。标记已使用会搬动原文件。<a id="kk-invoices-local-link" class="kk-link" hidden>通过本机服务打开报销页</a></p>
     <datalist id="kk-invoice-filenames"></datalist>
 
     <dialog id="kk-invoice-editor" aria-labelledby="kk-invoice-editor-title">
-      <div class="dlg-h"><h3 id="kk-invoice-editor-title">编辑发票</h3><button type="button" id="kk-invoice-editor-close" aria-label="关闭编辑">×</button></div>
+      <div class="dlg-h"><h3 id="kk-invoice-editor-title">编辑油票</h3><button type="button" id="kk-invoice-editor-close" aria-label="关闭编辑">×</button></div>
       <form id="kk-invoice-form" class="dlg-b">
         <p id="kk-invoice-edit-name" class="kk-invoice-file-title"></p>
-        <div class="fld2"><label class="fld"><span>类别</span><select name="category"><option value="hwy">高速通行</option><option value="oil">油票</option><option value="mileage">里程图</option><option value="other">其他发票</option></select></label><label class="fld"><span>商户</span><input name="merchant" maxlength="160"></label></div>
+        <label class="fld"><span>商户</span><input name="merchant" maxlength="160"></label>
         <div class="fld2"><label class="fld"><span>开票日期</span><input type="date" name="date"></label><label class="fld"><span>发票金额（元）</span><input type="number" name="amount" min="0" step="0.01" inputmode="decimal"></label></div>
         <label class="fld"><span>备注</span><input name="note" maxlength="500"></label>
         <label class="fld"><span>使用用途</span><input name="usedNote" maxlength="500"></label>
-        <label class="fld"><span id="kk-invoice-replace-label">附件</span><input type="file" name="attachment" accept="application/pdf,image/*,.pdf,.heic,.heif"></label>
-        <div class="kk-invoice-edit-actions"><button class="btn" type="button" id="kk-invoice-remove">移除发票</button><button class="btn primary" type="submit">保存</button></div>
+        <div class="kk-invoice-edit-actions"><button class="btn primary" type="submit">保存</button></div>
       </form>
     </dialog>
     <dialog id="kk-invoice-preview" aria-labelledby="kk-invoice-preview-name">
@@ -1865,10 +1860,11 @@ $("#a-date").value = key(new Date());
 const invoicePanel = $('#kk-invoice-manager');
 if (window.WorkbenchInvoices) {
   invoiceManager = window.WorkbenchInvoices.mount(invoicePanel, {
-    escape: esc, money, today: () => key(new Date()), csv: csvOf, download, toast, labelTable: kkLabelTable
+    escape: esc, money, today: () => key(new Date()), csv: csvOf, download, toast, labelTable: kkLabelTable,
+    localFolderFallback: typeof invoiceFolderFallback === 'function' ? invoiceFolderFallback() : ""
   });
 } else {
-  $('#kk-invoices-summary').textContent = '发票管家加载失败，请刷新页面。';
+  $('#kk-invoices-summary').textContent = '油票管理加载失败，请刷新页面。';
 }
 bindEdit(); bindTodo(); bindMoney(); bindData(); kkBind();
 render();
