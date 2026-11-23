@@ -230,6 +230,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
 .kk-main[data-current-view]:not([data-current-view="overview"]) #metrics{display:none}
 
 .kk-ct-event.other{background:#fbf4e7;color:#ae905a;border-left-color:#d2b87c}
+.kk-ct-event.pending-mode{background:#eef0f3;color:#566374;border-left-color:#9aa9bb}.kk-legend i.pending-mode{background:#9aa9bb}
 .kk-overview-calendar{min-width:740px}.kk-overview-calendar .kk-ct-event strong{font-size:10px}
 .kk-bottom-stats{margin-top:27px}.kk-bottom-stats>h2{font-size:14px;font-weight:600;margin-bottom:15px}
 .kk-bottom-stats .grid4{margin-bottom:6px}.tbl td.kk-ot-title{min-width:200px;max-width:360px;white-space:normal}
@@ -323,7 +324,7 @@ textarea.imp:focus{outline:none;border-color:var(--accent);background:#fff}
   <section class="kk-heading"><div><div class="kk-eyebrow" id="kk-date"></div><h1 id="kk-title">把时间，留给教学。<span>·</span></h1><p id="kk-subtitle">看清每一节课，安排每一段路，也不漏掉每一笔报销。</p></div><div class="kk-heading-actions"><button class="btn" id="kk-sync"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7V3l-4 4m4 0A9 9 0 0 0 4 8m0 9v4l4-4m-4 0a9 9 0 0 0 16-1"/></svg>同步飞书</button><button class="btn primary" id="btn-add"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>新建安排</button></div></section>
   <div class="kk-period"><div><span class="kk-caption">统计月份</span><div class="months" id="month-bar"></div></div><span class="kk-local"><svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg>浏览器保存 · 自动保留手动修正</span></div>
   <section id="kk-overview" data-page="overview">
-    <div class="kk-dashboard"><section class="card kk-calendar"><div class="kk-panel-head"><div><h2>一周课表</h2><p id="kk-week-label"></p></div><div class="kk-week-nav"><button data-week="-1" aria-label="上一周">‹</button><button data-week="today">本周</button><button data-week="1" aria-label="下一周">›</button></div></div><div class="kk-course-scroll"><div id="kk-week" class="kk-course-calendar kk-overview-calendar"></div></div><div class="kk-panel-foot"><div class="kk-legend"><span><i></i>线下课程</span><span><i class="online"></i>线上课程</span><span><i class="other"></i>行程 / 其他</span></div><button class="kk-link" data-view="courses">全部课程 <svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></div></section>
+    <div class="kk-dashboard"><section class="card kk-calendar"><div class="kk-panel-head"><div><h2>一周课表</h2><p id="kk-week-label"></p></div><div class="kk-week-nav"><button data-week="-1" aria-label="上一周">‹</button><button data-week="today">本周</button><button data-week="1" aria-label="下一周">›</button></div></div><div class="kk-course-scroll"><div id="kk-week" class="kk-course-calendar kk-overview-calendar"></div></div><div class="kk-panel-foot"><div class="kk-legend"><span><i></i>线下课程</span><span><i class="online"></i>线上课程</span><span><i class="pending-mode"></i>形式待定课程</span><span><i class="other"></i>行程 / 其他</span></div><button class="kk-link" data-view="courses">全部课程 <svg class="kk-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></div></section>
     <section class="card kk-today"><div class="kk-panel-head kk-daily-head"><div><h2 id="kk-day-heading">今日安排</h2><p id="kk-today-label"></p></div><nav class="kk-week-nav kk-day-nav" aria-label="切换每日安排"><button data-day="-1" aria-label="查看前一天安排" title="前一天">‹</button><button data-day="today" aria-label="返回今日安排">今天</button><button data-day="1" aria-label="查看后一天安排" title="后一天">›</button></nav></div><div id="kk-today"></div><div class="kk-today-foot">留一点空白，给自己充充电。</div>
       <section class="kk-dashboard-todos" aria-labelledby="kk-todo-heading">
         <div class="kk-panel-head"><div><h2 id="kk-todo-heading">待办事项 <span class="kk-count" id="kk-todo-count">0</span></h2><p id="kk-todo-hint">一件一件，慢慢做好。</p></div><button class="kk-link" data-view="todos">全部待办</button></div>
@@ -675,7 +676,7 @@ const throughToday = date => date < addDays(d0(new Date()),1);
 const courseTitle = i => i.patch.title || i.ev.title || courseOf(i)?.name || "未命名课程";
 const locationOf = i => i.venue || i.ev.location || '';
 
-/* ========== 课程分类（固定 6 类） ========== */
+/* ========== 课程分类 ========== */
 let COURSES = [];
 const COURSE_BY_ID = Object.create(null);
 function refreshCourseRoster(){
@@ -687,7 +688,9 @@ function refreshCourseRoster(){
   Object.keys(COURSE_BY_ID).forEach(k=>delete COURSE_BY_ID[k]);COURSES.forEach(c=>COURSE_BY_ID[c.id]=c);
 }
 refreshCourseRoster();
-const MODE_LABEL = { offline: "线下", online: "线上", "": "待归类" };
+const MODE_LABEL = { offline: "线下", online: "线上", "": "形式待定" };
+const ONE_ON_ONE = { id: "one-on-one", name: "1v1", mode: "", color: "#7b8794" };
+const ONE_ON_ONE_TITLE = /(?:^|[^0-9])1\s*v\s*1(?![0-9])/i;
 const courseById = id => COURSE_BY_ID[id] || null;
 
 const SUBJECTS = ["力学进阶", "竞赛专题", "电磁学答疑", "实验课", "物理", "数学", "语文", "英语", "化学", "生物", "历史", "地理", "政治", "班会", "自习"];
@@ -703,10 +706,11 @@ function courseOf(it) {
   if (ev.courseId && courseById(ev.courseId)) return withMode(courseById(ev.courseId), t);
 
   const clean = t.replace(/【[^】]*】/g, "");
+  const oneOnOne = ONE_ON_ONE_TITLE.test(t.normalize("NFKC"));
+  if (!oneOnOne && NOT_CLASS.test(t)) return null;
   const hit = COURSES.find(c => c.keys.some(k => clean.includes(k)));
-  if (hit && !NOT_CLASS.test(t)) return withMode(hit, t);
+  if (hit || oneOnOne) return withMode(hit || ONE_ON_ONE, t);
 
-  if (NOT_CLASS.test(t)) return null;
   const subj = SUBJECTS.find(s => t.includes(s));
   const classSignal = /班|课|授课|教学|1v\d|伴行|交付|答疑|辅导|培优|竞赛|专题/.test(t);
   const looks = classSignal && (/线下|线上/.test(t) || subj || /伴行/.test(t));
@@ -906,9 +910,15 @@ function renderMonths() {
     `<button class="mchip ${m === curMonth ? "on" : ""}" data-m="${m}">${monthLabel(m)}</button>`).join("");
 }
 
+function courseModeSummary(courses) {
+  const offline = courses.filter(({co}) => co.mode === "offline").length;
+  const online = courses.filter(({co}) => co.mode === "online").length;
+  const pending = courses.length - offline - online;
+  return `线下 ${offline} / 线上 ${online}${pending ? ` / 形式待定 ${pending}` : ''}`;
+}
+
 function renderMetrics() {
   const cs = courseInstances().filter(x => inMonth(x.i.start, curMonth));
-  const off = cs.filter(x => x.co.mode === "offline").length;
   const mrows = moneyRows(curMonth);
   const due = mrows.filter(r => !r.reimbursed);
   const ots = otRows(curMonth);
@@ -921,7 +931,7 @@ function renderMetrics() {
     <div class="metric hl">
       <div class="k">${monthTitle(curMonth)} · 课时</div>
       <div class="v num">${cs.length}<small>节</small></div>
-      <div class="f">合计 ${durationText(totalMinutes(cs))} · 线下 ${off} / 线上 ${cs.length-off}</div>
+      <div class="f">合计 ${durationText(totalMinutes(cs))} · ${courseModeSummary(cs)}</div>
     </div>
     <div class="metric">
       <div class="k">待报销</div>
@@ -942,8 +952,8 @@ function renderMetrics() {
 
 function renderCourse() {
   const cs=courseInstances().filter(x=>inMonth(x.i.start,curMonth));
-  const minutes=totalMinutes(cs),off=cs.filter(x=>x.co.mode==='offline').length;
-  $('#c-hint').textContent=`${monthTitle(curMonth)} · ${cs.length} 节 · ${durationText(minutes)}（线下 ${off} / 线上 ${cs.length-off}）`;
+  const minutes=totalMinutes(cs);
+  $('#c-hint').textContent=`${monthTitle(curMonth)} · ${cs.length} 节 · ${durationText(minutes)}（${courseModeSummary(cs)}）`;
   $('#kk-course-week-label').textContent=weekLabel(kkCourseWeek);
   const week=weekItems(courseInstances().map(x=>x.i),kkCourseWeek);
   $('#kk-course-calendar').innerHTML=responsiveWeekGrid(week,kkCourseWeek,'courses');
@@ -1011,7 +1021,7 @@ function weekGrid(items,start,days=7) {
     const day=week.filter(i=>i.start<next&&i.end>date).map(i=>({i,co:courseOf(i),from:Math.max(date.getTime(),i.start.getTime()),to:Math.min(next.getTime(),i.end.getTime())}));
     return `<div class="kk-ct-day" style="height:${height}px">${lines}${layoutCourses(day).map(({i,co,from,to,lane,lanes})=>{
       const top=position((from-date.getTime())/60000),bottom=position((to-date.getTime())/60000);
-      const style=co?co.mode==='online'?'online':'':'other';
+      const style = co ? (co.mode === 'offline' ? '' : co.mode || 'pending-mode') : 'other';
       const title=i.patch.title||i.ev.title||'未命名安排',venue=locationOf(i);
       return `<button class="kk-ct-event ${style}" data-kk-edit="${esc(i.sid)}" style="top:${top}px;height:${Math.max(12,bottom-top-4)}px;left:calc(${lane/lanes*100}% + 3px);width:calc(${100/lanes}% - 6px)" title="${esc(title)} · ${hm(i.start)}–${hm(i.end)}${venue?' · '+esc(venue):''}"><small>${hm(i.start)}–${hm(i.end)}</small><strong>${esc(title)}</strong><small>${co?hoursFromMinutes(minutesOf(i))+' 小时 · '+esc(MODE_LABEL[co.mode]||'待归类'):esc(venue||'行程 / 其他')}</small></button>`;
     }).join('')}</div>`;
